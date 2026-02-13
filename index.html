@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAPSTON</title>
+
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">knock knock 👋</div>
+
+        <div class="header-right">
+
+            <div class="icon-group">
+
+                <div class="header-icon" title="검색">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                                d="m21 21-4.35-4.35M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/>
+                    </svg>
+                </div>
+
+                <div class="header-icon" style="position: relative;" title="알림">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 17a3 3 0 0 0 6 0"/>
+                    </svg>
+                    <span class="alarm-dot"></span>
+                </div>
+
+            </div>
+
+            <div class="profile" title="마이페이지">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.75 6a3.75 3.75 0 1 1-7.5 0
+                                3.75 3.75 0 0 1 7.5 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4.5 20.25a7.5 7.5 0 0 1 15 0"/>
+                </svg>
+
+                <div>
+                    <div class="profile-name">권오윤</div>
+                    <div class="profile-school">세명대</div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="card">
+            <div class="greeting">
+                <h1>안녕하세요, 권오윤님 !</h1>
+                <p>오늘은 어떤 친구를 만나볼까요?</p>
+            </div>
+
+            <button class="primary-btn">시작하기</button>
+        </section>
+
+        <section class="card">
+            <div class="card-title">▪️ 카테고리 탐색</div>
+            <p class="card-desc">원하는 카테고리를 선택해보세요</p>
+
+            <div class="category-row">
+
+                <div class="category-box cat-pink">
+                    🎬
+                    <span>영화</span>
+                </div>
+
+                <div class="category-box cat-blue">
+                    🎵
+                    <span>음악</span>
+                </div>
+
+                <div class="category-box cat-green">
+                    ✈️
+                    <span>여행</span>
+                </div>
+
+                <div class="category-box cat-purple category-clickable"
+                        onclick="location.href='game.html'">
+                    🎮
+                    <span>게임</span>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-title">▪️ 나의 관심사</div>
+            <p class="card-desc">관심사를 선택하면 관련 채팅방을 볼 수 있어요</p>
+
+            <div class="tag-row">
+                <span class="tag">콘텐츠</span>
+                <span class="tag">클래식</span>
+                <span class="tag">그림/디자인</span>
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>
