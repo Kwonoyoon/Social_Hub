@@ -22,5 +22,19 @@
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "description": "��#\u0000 \u0000S\u0000o\u0000c\u0000i\u0000a\u0000l\u0000 \u0000H\u0000u\u0000b\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kwonoyoon/Social_Hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/Kwonoyoon/Social_Hub/issues"
+  },
+  "homepage": "https://github.com/Kwonoyoon/Social_Hub#readme"
 }
