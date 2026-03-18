@@ -1,172 +1,208 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 
+/**
+ * [캡스톤] 게임 페이지 시안 재현 복구 코드 (블루 톤)
+ * 4칸 들여쓰기 적용
+ */
 export default function GamePage() {
-  // 경고창 함수 (기존 onclick="alert(...)" 대체)
-  const handleTodoAlert = (msg: string) => {
-    alert(`${msg} 페이지는 추후 연결될 예정입니다.`);
-  };
+    // 임시 사용자 데이터 (우상단)
+    const userData = {
+        nickname: "권오윤",
+        university: "세명대"
+    };
 
-  return (
-    <div className="bg-[#f5f7fb] min-h-screen">
-      {/* 헤더 섹션 */}
-      <header className="header flex justify-between items-center px-8 py-4 bg-white border-b">
-        <div className="logo cursor-pointer text-xl font-bold">
-          <Link href="/">knock knock 👋</Link>
-        </div>
+    // 카테고리 탭 상태 (Game, Movie 등)
+    const [activeTab, setActiveTab] = useState('Game');
+    // 플랫폼 필터 상태 (PC, 모바일 등)
+    const [activePlatform, setActivePlatform] = useState('PC');
 
-        <div className="header-right flex items-center gap-6">
-          <div className="icon-group flex gap-4">
-            <div className="header-icon cursor-pointer" title="검색">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z" />
-              </svg>
-            </div>
-            <div className="header-icon relative cursor-pointer" title="알림">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a3 3 0 0 0 6 0" />
-              </svg>
-              <span className="alarm-dot absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            </div>
-          </div>
+    const categories = ['Game', 'Movie', 'Travel', 'Music'];
+    const platforms = ['PC', '모바일', '콘솔', 'VR'];
 
-          <div className="profile flex items-center gap-3 cursor-pointer" title="마이페이지">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="w-8 h-8 text-gray-600">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25a7.5 7.5 0 0 1 15 0" />
-            </svg>
-            <div className="text-sm">
-              <div className="profile-name font-bold">권오윤</div>
-              <div className="profile-school text-gray-500">세명대</div>
-            </div>
-          </div>
-        </div>
-      </header>
+    // 핸들러 함수
+    const handleTodoAlert = (msg: string) => {
+        alert(`${msg} 페이지는 추후 연결될 예정입니다.`);
+    };
 
-      {/* 메인 랩퍼 */}
-      <div className="wrap max-w-6xl mx-auto p-6">
-        {/* 상단 탭 */}
-        <div className="top-tabs flex gap-3 mb-6">
-          <button className="pill active bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Game</button>
-          <button onClick={() => handleTodoAlert('Movie')} className="pill bg-gray-200 px-6 py-2 rounded-full hover:bg-gray-300">Movie</button>
-          <button onClick={() => handleTodoAlert('Travel')} className="pill bg-gray-200 px-6 py-2 rounded-full hover:bg-gray-300">Travel</button>
-          <button onClick={() => handleTodoAlert('Music')} className="pill bg-gray-200 px-6 py-2 rounded-full hover:bg-gray-300">Music</button>
-        </div>
-
-        {/* 서브 탭 (필터) */}
-        <div className="subtabs flex gap-4 items-center mb-8 text-sm font-medium text-gray-600">
-          <a href="#" className="active text-blue-600 font-bold border-b-2 border-blue-600 pb-1">PC</a>
-          <span className="text-gray-300">|</span>
-          <a href="#" onClick={(e) => { e.preventDefault(); handleTodoAlert('모바일'); }}>모바일</a>
-          <span className="text-gray-300">|</span>
-          <a href="#" onClick={(e) => { e.preventDefault(); handleTodoAlert('콘솔'); }}>콘솔</a>
-          <span className="text-gray-300">|</span>
-          <a href="#" onClick={(e) => { e.preventDefault(); handleTodoAlert('VR'); }}>VR</a>
-        </div>
-
-        {/* 컨텐츠 패널 */}
-        <div className="panel grid grid-cols-1 md:grid-cols-3 gap-8">
-
-          {/* 메인 그리드 (왼쪽/중간 섹션) */}
-        <div className="md:col-span-2 space-y-10">
-            {/* 1번 추천 섹션 */}
-            <section>
-                <h3 className="section-title text-xl font-bold mb-4">🎮 추천 게임 모임</h3>
-                <div className="feature relative rounded-xl overflow-hidden shadow-lg mb-6 group">
-                <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=60" alt="LoL" className="w-full h-[300px] object-cover transition-transform group-hover:scale-105" />
-                <div className="overlay absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-6 flex flex-col justify-end">
-                    <div className="title text-white text-2xl font-bold mb-2">🔥 롤 입문자 한 판?</div>
-                    <div className="meta text-gray-300 text-sm flex gap-2 mb-4">
-                    <span>PC</span><span>•</span><span>초보 환영</span><span>•</span><span>3/6</span>
-                </div>
-                <div className="actions flex gap-3">
-                    <button className="btn primary bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700" onClick={() => alert('참여: 롤 입문자 한 판?')}>참여하기</button>
-                    <button className="btn ghost bg-white/20 text-white px-4 py-2 rounded backdrop-blur-sm hover:bg-white/30" onClick={() => alert('정보: 롤 입문자 한 판?')}>정보보기</button>
-                </div>
-                </div>
-            </div>
-
-              {/* 리스트 블록 */}
-            <div className="list-block bg-white rounded-xl p-6 shadow-sm">
-                <div className="list-head flex justify-between items-center mb-4 border-b pb-3">
-                <strong className="text-sm font-bold">전체 모임 보기</strong>
-                <a href="#" onClick={(e) => { e.preventDefault(); handleTodoAlert('전체 모임'); }} className="text-xs text-blue-600 hover:underline">전체 보기 &gt;</a>
-                </div>
-                <div className="rows space-y-4">
-                {[
-                    { title: "오버워치2 같이 큐 잡자", img: "12", meta: "22분전", count: "8/10" },
-                    { title: "스타듀밸리 힐링 팜", img: "25", meta: "35분전", count: "4/6" },
-                    { title: "로스트아크 주말 레이드", img: "33", meta: "41분전", count: "6/8" }
-                ].map((item, idx) => (
-                    <div key={idx} className="row flex justify-between items-center group">
-                    <div className="row-left flex gap-4 items-center">
-                        <div className="avatar w-10 h-10 rounded-full overflow-hidden">
-                        <img src={`https://i.pravatar.cc/60?img=${item.img}`} alt="user" />
-                        </div>
-                        <div>
-                        <div className="row-title font-bold text-sm group-hover:text-blue-600 cursor-pointer">{item.title}</div>
-                        <div className="row-sub text-xs text-gray-400"><span>PC</span><span> • </span><span>{item.meta}</span></div>
-                        </div>
-                    </div>
-                    <div className="row-right flex items-center gap-4">
-                        <span className="muted text-xs text-gray-400 font-medium">{item.count}</span>
-                        <button className="join bg-blue-50 text-blue-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors" onClick={() => alert(`참여: ${item.title}`)}>참여</button>
-                    </div>
-                    </div>
-                ))}
-                </div>
-            </div>
-            </section>
-        </div>
-
-          {/* 사이드바 (오른쪽 섹션) */}
-        <aside className="side space-y-6">
-            <div className="side-top flex justify-between items-center">
-            <div className="small-title font-bold text-gray-700">실시간 모임 목록</div>
-            <button className="ghost-btn text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1 rounded-full hover:bg-blue-600 hover:text-white" onClick={() => handleTodoAlert('모임 등록')}>모임등록</button>
-            </div>
-
-            <div className="side-card bg-white rounded-xl p-4 shadow-sm space-y-4 border border-gray-100">
-            {[
-                { title: "리그오브레전드 듀오 구함", img: "52", meta: "15분전", count: "8/10" },
-                { title: "발로란트 스파이크 러시", img: "56", meta: "19분전", count: "5/10" },
-                { title: "몬헌 월드 파밍팟", img: "60", meta: "27분전", count: "3/4" }
-            ].map((item, idx) => (
-                <div key={idx} className="row flex justify-between items-center">
-                <div className="row-left flex gap-3 items-center">
-                    <div className="avatar w-8 h-8 rounded-full overflow-hidden">
-                    <img src={`https://i.pravatar.cc/60?img=${item.img}`} alt="user" />
-                    </div>
-                    <div>
-                    <div className="row-title text-xs font-bold truncate w-32">{item.title}</div>
-                    <div className="row-sub text-[10px] text-gray-400">PC • {item.meta}</div>
-                    </div>
-                </div>
-                <div className="row-right text-[11px] text-gray-500 font-medium">{item.count}</div>
-                </div>
-            ))}
-            </div>
+    return (
+        <div className="bg-[#f0f2f5] min-h-screen text-gray-900 font-sans">
             
-            <div className="section-title text-sm font-bold text-orange-600">🔥 인기 게임 모임</div>
-            <div className="side-card bg-white rounded-xl p-4 shadow-sm space-y-4 border border-gray-100">
-            <div className="row flex justify-between items-center">
-                <div className="row-left flex gap-3 items-center">
-                <div className="avatar w-8 h-8 rounded-full overflow-hidden"><img src="https://i.pravatar.cc/60?img=10" alt="user" /></div>
-                <div>
-                    <div className="row-title text-xs font-bold">FC온라인 랭크전 모임</div>
-                    <div className="row-sub text-[10px] text-gray-400">PC • 12분전</div>
-                </div>
-                </div>
-                <div className="row-right text-[11px] text-gray-500 font-medium">7/10</div>
-            </div>
-            </div>
-        </aside>
+            {/* 1. 최상단 파란색 테두리 (시안 재현) */}
+            <div className="h-2 bg-[#2563eb] w-full sticky top-0 z-30"></div>
 
+            {/* 2. 헤더 섹션 (knock knock 👋) */}
+            <header className="header flex justify-between items-center px-10 py-5 bg-white border-b border-gray-100 sticky top-2 z-20 shadow-sm">
+                <div className="logo cursor-pointer text-2xl font-black text-gray-900">
+                    {/* 일반 a 태그 사용 */}
+                    <a href="/" className="hover:text-[#2563eb]">knock knock 👋</a>
+                </div>
+
+                <div className="header-right flex items-center gap-6">
+                    <div className="flex items-center gap-4 text-gray-600">
+                        {/* 돋보기 아이콘 */}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6 cursor-pointer hover:text-[#2563eb]">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                        </svg>
+                        {/* 종 아이콘 */}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6 cursor-pointer hover:text-[#2563eb]">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31a8.967 8.967 0 0 1-2.312-6.022c0-1.652-.352-3.213-1.022-4.666a4.72 4.72 0 0 0-4.592-3.042a4.72 4.72 0 0 0-4.592 3.042a8.953 8.953 0 0 1-1.022 4.666c0 1.652-.352 3.213-1.022 4.666q-.944 2.064-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        </svg>
+                    </div>
+                    {/* 유저 프로필 영역 */}
+                    <div className="profile flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                        <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 border border-gray-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25a7.5 7.5 0 0 1 15 0" />
+                            </svg>
+                        </div>
+                        <div className="text-sm">
+                            <div className="profile-name font-bold text-gray-900">{userData.nickname}</div>
+                            <div className="profile-school text-gray-400 text-xs">{userData.university}</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* 메인 컨텐츠 영역 */}
+            <main className="max-w-[1400px] mx-auto p-8 pt-12">
+                
+                {/* 3. 카테고리 탭 (Game, Movie 등) */}
+                <div className="category-tabs flex gap-4 mb-10">
+                    {categories.map(tab => (
+                        <button 
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`pill px-9 py-2.5 rounded-full font-bold text-lg shadow transition-all ${activeTab === tab ? 'bg-[#2563eb] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+
+                {/* 4. 플랫폼 필터 (PC, 모바일 등) - 파란색 포인트 */}
+                <div className="platform-filters flex gap-6 text-xl font-bold text-gray-500 mb-12">
+                    {platforms.map(platform => (
+                        <button 
+                            key={platform}
+                            onClick={() => setActivePlatform(platform)}
+                            className={`flex items-center gap-1.5 transition-colors ${activePlatform === platform ? 'text-[#2563eb]' : 'hover:text-gray-800'}`}
+                        >
+                            {activePlatform === platform && <span className="text-sm">▶</span>}
+                            {platform}
+                        </button>
+                    ))}
+                </div>
+
+                {/* 메인 그리드 레이아웃 (좌측 모임 리스트 | 우측 사이드바) */}
+                <div className="grid grid-cols-12 gap-10">
+                    
+                    {/* 좌측: 모임 리스트 영역 (8/12) */}
+                    <div className="main-content col-span-12 lg:col-span-8">
+                        
+                        {/* 5. 추천 게임 모임 (카드형) */}
+                        <section className="mb-12">
+                            <h3 className="text-2xl font-black mb-6 flex items-center gap-2">
+                                🎮 추천 게임 모임
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                
+                                {/* 카드 1: 롤 초보 파티 - 버튼 파란색 */}
+                                <div className="feature relative rounded-3xl overflow-hidden shadow-2xl group cursor-pointer h-[380px]">
+                                    <img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80" alt="LoL" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" />
+                                    <div className="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-7 flex flex-col justify-end text-white">
+                                        <div className="text-3xl font-black mb-2 flex items-center gap-2">🔥 롤 초보 파티</div>
+                                        <div className="text-gray-300 font-medium mb-5">PC • 초보 환영 • 3/5</div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button onClick={() => alert('참여!')} className="bg-[#2563eb] hover:bg-[#1d4ed8] px-5 py-3 rounded-xl font-bold transition-colors">참여하기</button>
+                                            <button onClick={() => alert('정보!')} className="bg-white/20 hover:bg-white/30 px-5 py-3 rounded-xl font-bold backdrop-blur-sm transition-colors">정보보기</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 카드 2: 발로란트 - 버튼 파란색 */}
+                                <div className="feature relative rounded-3xl overflow-hidden shadow-2xl group cursor-pointer h-[380px]">
+                                    <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80" alt="Valorant" className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" />
+                                    <div className="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-7 flex flex-col justify-end text-white">
+                                        <div className="text-3xl font-black mb-2 flex items-center gap-2">🔥 발로란트 할사람?</div>
+                                        <div className="text-gray-300 font-medium mb-5">PC • 즐겜 • 2/4</div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <button onClick={() => alert('참여!')} className="bg-[#2563eb] hover:bg-[#1d4ed8] px-5 py-3 rounded-xl font-bold transition-colors">참여하기</button>
+                                            <button onClick={() => alert('정보!')} className="bg-white/20 hover:bg-white/30 px-5 py-3 rounded-xl font-bold backdrop-blur-sm transition-colors">정보보기</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 6. 전체 모임 보기 (하단 리스트형) */}
+                        <section>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-2xl font-black flex items-center gap-2">全 전체 모임 보기</h3>
+                                <div className="text-gray-400 font-bold cursor-pointer hover:text-gray-600">등록순 ▾</div>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="list-item bg-white p-5 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100 hover:shadow-lg transition-shadow">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 bg-gray-100 rounded-xl"></div> {/* 게임 아이콘 */}
+                                            <div>
+                                                <h5 className="text-lg font-bold">롤 칼바람 나락 멤버 구합니다</h5>
+                                                <p className="text-sm text-gray-500 flex items-center gap-2 mt-0.5">PC • 초보 환영 • <span className="font-medium text-[#2563eb]">3/5</span>명</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => alert('참여!')} className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-7 py-3 rounded-xl font-bold transition-colors">
+                                            참여하기
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* 우측 사이드바 Area (4/12) */}
+                    <aside className="col-span-12 lg:col-span-4 space-y-8">
+                        
+                        {/* 7. 인원모집 영역 - 파란색 포인트 */}
+                        <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-center mb-6">
+                                <h4 className="text-xl font-extrabold text-gray-800">인원모집 영역</h4>
+                                <span className="text-[#2563eb] text-sm font-medium">더보기 +</span>
+                            </div>
+                            <div className="space-y-4">
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <div className="w-9 h-9 bg-gray-100 rounded-full"></div>
+                                        <div className="text-sm flex-1">
+                                            <p className="font-bold">최근 구함</p>
+                                            <p className="text-gray-400 text-xs">최근 {i + 1}명 추가모집 중</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* 8. 인기 게임 모임 - 파란색 포인트 */}
+                        <section className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h4 className="text-xl font-extrabold text-gray-800 mb-6 flex items-center gap-2">🔥 인기 게임 모임</h4>
+                            <div className="space-y-5">
+                                {[...Array(5)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <div className="w-9 h-9 bg-gray-100 rounded-xl"></div>
+                                        <div className="text-sm flex-1">
+                                            <p className="font-bold">같이 {['롤', '발로란트', '배그', '메이플', '로아'][i]} 하실 분</p>
+                                            <p className="text-gray-400 text-xs">{20 - (i * 2)}명 참여 중</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </aside>
+                </div>
+            </main>
         </div>
-    </div>
-    </div>
-);
+    );
 }
