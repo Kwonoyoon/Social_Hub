@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "ml-distance": "^4.0.1",
+    "natural": "^8.1.1"
+  }
+}
