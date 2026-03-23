@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // 🌟 이동 기능을 위한 라우터 불러오기
+import { useRouter } from 'next/navigation';
+import BottomNav from '../components/BottomNav'; // 🌟 만들어둔 하단바 부품 불러오기
 
-// (이하 데이터는 이전과 동일)
+// --- 더미 데이터 영역 ---
 const DUMMY_CHATS = [
   { id: 1, type: 'group', title: '영화 덕후 모임', titleIcon: '🎬', memberCount: 12, lastMessage: '이번 주말 영화 추천 받습니다!', time: '30분 전', unreadCount: 5, avatarColor: 'bg-neutral-900', avatarText: '🎬' },
   { id: 2, type: 'private', title: '이서연', lastMessage: '내일 카페에서 만날까?', time: '1시간 전', unreadCount: 1, isOnline: true, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '👩', textColor: 'text-gray-900' },
-  { id: 3, type: 'group', title: 'K-POP 러버스', titleIcon: '💜', memberCount: 8, lastMessage: '신곡 나왔어요!!', time: '2시간 전', unreadCount: 0, avatarColor: 'bg-neutral-900', avatarText: '🎤' },
+  { id: 3, type: 'group', title: 'K-POP 러버스', titleIcon: '🎤', memberCount: 8, lastMessage: '신곡 나왔어요!!', time: '2시간 전', unreadCount: 0, avatarColor: 'bg-neutral-900', avatarText: '🎤' },
   { id: 4, type: 'private', title: '강하늘', lastMessage: '오케이 내일 보자!', time: '어제', unreadCount: 0, isOnline: false, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '🧑', textColor: 'text-gray-900' },
   { id: 5, type: 'group', title: '게임 같이해요', titleIcon: '🎮', memberCount: 15, lastMessage: '저녁 9시에 롤 할 사람~', time: '어제', unreadCount: 3, avatarColor: 'bg-neutral-900', avatarText: '🎮' },
   { id: 6, type: 'private', title: '민지', lastMessage: '숙제 끝!', time: '3분 전', unreadCount: 0, isOnline: true, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '👩‍💻', textColor: 'text-gray-900' },
@@ -26,7 +27,7 @@ const AiRobotBadge = ({ className }: { className?: string }) => (
 );
 
 const FilterChip = ({ text, icon, isActive }: { text: string; icon?: React.ReactNode; isActive?: boolean }) => (
-  <button className={`flex items-center gap-2 px-5 py-2 rounded-full border text-sm transition-colors ${isActive ? 'bg-purple-100 text-purple-700 border-purple-200 font-medium' : 'bg-white text-gray-700 border-neutral-200 hover:bg-neutral-50'}`}>
+  <button className={`flex items-center gap-2 px-5 py-2 rounded-full border text-sm transition-colors ${isActive ? 'bg-blue-50 text-blue-600 border-blue-200 font-medium' : 'bg-white text-gray-700 border-neutral-200 hover:bg-neutral-50'}`}>
     {icon}
     {text}
   </button>
@@ -34,7 +35,7 @@ const FilterChip = ({ text, icon, isActive }: { text: string; icon?: React.React
 
 export default function ChatListPolished() {
   const [searchQuery, setSearchQuery] = useState('');
-  const router = useRouter(); // 🌟 라우터 준비
+  const router = useRouter();
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
@@ -49,7 +50,7 @@ export default function ChatListPolished() {
             </div>
             <input
               type="text"
-              className="block w-full pl-12 pr-5 py-4 border-none rounded-2xl bg-white text-base focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner"
+              className="block w-full pl-12 pr-5 py-4 border-none rounded-2xl bg-white text-base focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
               placeholder="채팅방 검색..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -68,7 +69,7 @@ export default function ChatListPolished() {
             {DUMMY_CHATS.map((chat) => (
               <li 
                 key={chat.id} 
-                onClick={() => router.push(`/chat/${chat.id}`)} // 🌟 클릭 시 해당 채팅방으로 이동
+                onClick={() => router.push(`/chat/${chat.id}`)}
                 className="p-8 flex items-start gap-9 bg-white rounded-3xl border border-neutral-100 hover:bg-neutral-50 cursor-pointer transition-all duration-150 shadow-sm hover:shadow-md"
               >
                 <div className="relative flex-shrink-0 w-20 h-20">
@@ -79,7 +80,7 @@ export default function ChatListPolished() {
                     <span className="absolute bottom-1 right-1 block h-6 w-6 rounded-full bg-green-500 border-4 border-white shadow"></span>
                   )}
                   {chat.type === 'group' && (
-                    <div className="absolute -bottom-1 -right-1 bg-purple-500 rounded-full p-2 border-4 border-white text-white shadow-lg">
+                    <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-2 border-4 border-white text-white shadow-lg">
                         <AiRobotBadge className="h-4 w-4" />
                     </div>
                   )}
@@ -118,22 +119,9 @@ export default function ChatListPolished() {
         </main>
       </div>
 
-      <nav className="border-t border-neutral-200 bg-white sticky bottom-0 z-10 w-full shadow-lg">
-        <div className="w-full max-w-[1440px] mx-auto px-16 py-6 flex justify-between items-center">
-          <li className="flex flex-col items-center gap-2 text-neutral-400 cursor-pointer hover:text-gray-600 list-none flex-1">
-            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-            <span className="text-sm">홈</span>
-          </li>
-          <li className="flex flex-col items-center gap-2 text-purple-600 cursor-pointer list-none flex-1">
-            <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
-            <span className="text-sm font-semibold">채팅</span>
-          </li>
-          <li className="flex flex-col items-center gap-2 text-neutral-400 cursor-pointer hover:text-gray-600 list-none flex-1">
-            <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" strokeWidth="2" /></svg>
-            <span className="text-sm">마이페이지</span>
-          </li>
-        </div>
-      </nav>
+      {/* 🌟 기존의 복잡했던 하단바 코드가 하나로 깔끔하게 들어갑니다! */}
+      <BottomNav />
+      
     </div>
   );
 }
