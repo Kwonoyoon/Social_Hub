@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase'; // 경로가 @/lib/supabase 인지 ../lib/supabase 인지 확인해줘!
+import { supabase } from '@/app/lib/supabase'; // 절대 경로 사용 추천!
+import BottomNav from "../components/BottomNav"; // 하단바 불러오기
 
 export default function MyPage() {
     const router = useRouter();
@@ -23,17 +24,13 @@ export default function MyPage() {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                
-                // 1. 현재 세션 확인
                 const { data: { session }, error: authError } = await supabase.auth.getSession();
 
                 if (authError || !session) {
-                    console.log("세션 정보가 없거나 에러입니다.");
                     router.push('/onboarding'); 
                     return;
                 }
 
-                // 2. DB 조회 (406 에러 방지를 위해 배열로 조회)
                 const { data, error } = await supabase
                     .from('user')
                     .select('*') 
@@ -43,7 +40,6 @@ export default function MyPage() {
                     console.error("조회 중 문제 발생:", error.message);
                 }
 
-                // 3. 데이터가 배열에 들어있다면 첫 번째 값을 사용
                 if (data && data.length > 0) {
                     const profile = data[0];
                     setUserData({
@@ -56,7 +52,6 @@ export default function MyPage() {
                         mbti: profile.mbti || "미선택"
                     });
                 }
-
             } catch (err) {
                 console.error("Unexpected error:", err);
             } finally {
@@ -81,7 +76,7 @@ export default function MyPage() {
     );
 
     return (
-        <div className="bg-[#f5f7fb] min-h-screen pb-20">
+        <div className="bg-[#f5f7fb] min-h-screen flex flex-col">
             <header className="flex justify-between items-center px-8 py-5 bg-white sticky top-0 z-50 shadow-sm">
                 <Link href="/" className="logo font-black text-xl text-blue-600 tracking-tighter italic">
                     KNOCK KNOCK <span className="text-blue-500">👋</span>
@@ -92,7 +87,8 @@ export default function MyPage() {
                 </div>
             </header>
 
-            <main className="container max-w-lg mx-auto p-6 space-y-6 mt-4">
+            {/* 하단바 때문에 가려지지 않게 pb-32 추가 */}
+            <main className="container max-w-lg mx-auto p-6 space-y-6 mt-4 pb-32">
                 <section className="bg-white p-10 rounded-[35px] shadow-sm border border-gray-50 text-center">
                     <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl border border-gray-50 shadow-inner">😵‍💫</div>
                     <h2 className="text-3xl font-black text-gray-900 leading-tight">{userData.nickname}</h2>
@@ -123,6 +119,9 @@ export default function MyPage() {
                     </div>
                 </section>
             </main>
+
+            {/* 하단바 고정 */}
+            <BottomNav />
         </div>
     );
 }
