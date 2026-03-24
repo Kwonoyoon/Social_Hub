@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from "next/navigation";
-import { supabase } from '@/app/lib/supabase';
+import { supabase } from '@/app/lib/supabase'; // 경로 확인 필수!
 
 // --- 데이터 정의 ---
 const interestData = {
@@ -35,7 +35,6 @@ export default function OnboardingPage() {
     mbti: "",
   });
 
-  // 공통 헤더 렌더링 (에러 방지를 위해 handleFinish 위에서 정의)
   const renderHeader = (step: number, title: string, icon: string) => (
     <div className="mb-8 w-full">
       <div className="flex justify-between items-center mb-2">
@@ -57,7 +56,6 @@ export default function OnboardingPage() {
     </div>
   );
 
-  // 관심사 버튼 렌더링
   const renderInterestButtons = (category: 'movie' | 'music' | 'hobby', data: string[]) => (
     <div className="grid grid-cols-2 gap-4 w-full mt-6">
       {data.map(item => (
@@ -82,12 +80,11 @@ export default function OnboardingPage() {
     </div>
   );
 
-  // 가입 및 로그인 완료 함수
+  // ★ 수정된 핵심 로직: user 테이블에 취향 데이터를 직접 포함하여 저장
   const handleFinish = async () => {
     setLoading(true);
     try {
       if (isSignupMode) {
-        // 1. 회원가입
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: onboardingData.email,
           password: onboardingData.pw,
@@ -95,20 +92,22 @@ export default function OnboardingPage() {
 
         if (authError) throw authError;
 
-        // authData.user가 있을 때만 실행 (TypeScript 에러 해결)
         if (authData?.user) {
-          // 2. user 테이블 저장
+          // DB의 컬럼명(movie, music, hobby, mbti)에 맞춰 데이터를 한 번에 넣습니다
           const { error: dbError } = await supabase.from('user').insert([{
             id: authData.user.id,
             email: onboardingData.email,
             nickname: onboardingData.nickname,
             university: onboardingData.university,
-            mbti: onboardingData.mbti
+            mbti: onboardingData.mbti,
+            movie: onboardingData.movie.join(', '), // 배열을 "액션, 공포" 형태의 문자열로 변환
+            music: onboardingData.music.join(', '),
+            hobby: onboardingData.hobby.join(', ')
           }]);
 
           if (dbError) throw dbError;
 
-          // 3. 취향 저장 (hobby_tag 매핑)
+          // 추가적인 hobby_tag 테이블 관리가 필요할 경우 실행
           const allSelected = [...onboardingData.movie, ...onboardingData.music, ...onboardingData.hobby];
           const { data: tags } = await supabase.from('hobby_tag').select('id').in('name', allSelected);
 
@@ -122,7 +121,6 @@ export default function OnboardingPage() {
           alert("회원가입과 취향 등록이 완료되었습니다!");
         }
       } else {
-        // 로그인 모드
         const { error: loginError } = await supabase.auth.signInWithPassword({
           email: onboardingData.email,
           password: onboardingData.pw,
@@ -130,7 +128,6 @@ export default function OnboardingPage() {
         if (loginError) throw loginError;
       }
 
-      // 4. 메인 화면으로 이동
       router.push('/'); 
       
     } catch (error: any) {
@@ -141,7 +138,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-[#f5f7fb] py-16">
+    <div className="min-h-screen flex flex-col items-center bg-[#f5f7fb] py-16 text-slate-900">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-black italic text-blue-600 tracking-tighter mb-2">KNOCK KNOCK</h1>
         <p className="text-gray-400 font-bold">서로 마음의 문을 두드려보자!!</p>
@@ -149,7 +146,6 @@ export default function OnboardingPage() {
 
       <div className="w-[480px] bg-white rounded-[40px] p-12 shadow-[0_30px_60px_rgba(0,0,0,0.05)] border border-white">
         
-        {/* 0단계: 로그인 및 회원가입 */}
         {currentStep === 0 && (
           <div className="flex flex-col w-full">
             <div className="flex justify-center gap-10 mb-10">
@@ -191,7 +187,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* 1~3단계: 관심사 선택 */}
         {currentStep === 1 && (
           <div>
             {renderHeader(1, "영화", "🎬")}
@@ -223,7 +218,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* 4단계: MBTI 및 완료 */}
         {currentStep === 4 && (
           <div>
             {renderHeader(4, "성격 유형", "✨")}
