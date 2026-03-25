@@ -291,3 +291,92 @@
 }
 
 .leave-btn svg { width: 18px; height: 18px; }
+
+/* =========================================
+   채팅방 반응형 최적화 (기존 코드 아래에 추가)
+   ========================================= */
+
+   @media (max-width: 420px) {
+    .chat-container {
+        max-width: 100%; /* 폰에서는 옆으로 꽉 차게 */
+        height: 100dvh;  /* 모바일 주소창 높이 변화에 대응하는 최신 단위 */
+    }
+
+    .message-bubble {
+        max-width: 75%; /* 폰 화면이 작으므로 말풍선 비율 조절 */
+    }
+
+    .attach-menu {
+        gap: 10px; /* 아이콘 간격 살짝 조정 */
+        justify-content: space-around;
+    }
+}
+
+@media (min-width: 421px) {
+    .chat-container {
+        /* PC에서 볼 때 화면 정가운데 배치 */
+        margin: 0 auto; 
+        border-left: 1px solid #e9ecef;
+        border-right: 1px solid #e9ecef;
+        box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    }
+}
+
+/* 입력창 포커스 시 모바일 키보드 대응 */
+.input-area input:focus {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+}
+/* 폰에서 채팅 목록 카드가 예쁘게 보이게 하는 설정 */
+
+@media (max-width: 600px) {
+    /* 1. 전체 컨테이너 여백 조정 */
+    .container, .wrap {
+        padding: 12px;
+    }
+
+    /* 2. 채팅방 카드(목록) 설정 */
+    .list-grid {
+        display: flex;
+        flex-direction: column; /* 2열로 나오던 걸 무조건 1열로 */
+        gap: 12px;
+    }
+
+    .row {
+        width: 100%;
+        background: #fff;
+        border-radius: 20px;
+        padding: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 캡처본처럼 부드러운 입체감 */
+    }
+
+    /* 3. 이름이 잘리는 문제 해결 (가장 중요!) */
+    .row-left {
+        flex: 1;
+        min-width: 0; /* 글자가 영역을 뚫고 나가는 것 방지 */
+    }
+
+    .row-title {
+        font-size: 16px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis; /* 너무 길면 ... 처리 */
+        max-width: 150px; /* 폰 너비에 맞춰 적당히 제한 */
+    }
+
+    /* 4. 아바타(프사) 크기 유지 */
+    .avatar {
+        width: 50px;
+        height: 50px;
+        flex-shrink: 0; /* 찌그러짐 방지 */
+    }
+
+    /* 5. 오른쪽 숫자 배지 정렬 */
+    .row-right {
+        margin-left: 10px;
+        text-align: right;
+    }
+}
