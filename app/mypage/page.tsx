@@ -1,114 +1,155 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/app/lib/supabase';
+import BottomNav from "../components/BottomNav";
+import { User, Bell, Settings, LogOut, Film, Music, Sparkles, Brain, Loader2 } from 'lucide-react';
 
 export default function MyPage() {
-    const [user, setUser] = useState<any>(null);
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
+    
+    const [userData, setUserData] = useState({
+        nickname: "사용자",
+        userId: "@user",
+        bio: "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
+        movie: "데이터 없음",
+        music: "데이터 없음",
+        hobby: "데이터 없음",
+        mbti: "데이터 없음"
+    });
 
     useEffect(() => {
         const fetchProfile = async () => {
-            // 1. 현재 로그인한 유저의 Auth 정보 가져오기
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            try {
+                setLoading(true);
+                const { data: { session }, error: authError } = await supabase.auth.getSession();
 
-            if (authUser) {
-                // 2. 해당 유저 ID와 일치하는 DB 데이터 가져오기
-                const { data, error } = await supabase
-                    .from('user') // 테이블명이 'user'인지 확인 필수!
-                    .select('*')
-                    .eq('id', authUser.id)
-                    .single();
-
-                if (!error && data) {
-                    setUser(data);
+                if (authError || !session) {
+                    router.push('/onboarding'); 
+                    return;
                 }
+
+                const { data, error } = await supabase
+                    .from('user')
+                    .select('*') 
+                    .eq('id', session.user.id);
+
+                if (error) {
+                    console.error("조회 중 문제 발생:", error.message);
+                }
+
+                if (data && data.length > 0) {
+                    const profile = data[0];
+                    setUserData({
+                        nickname: profile.nickname || "오윤",
+                        userId: `@${profile.nickname || "user"}`,
+                        bio: profile.bio || "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
+                        movie: profile.movie || "미선택",
+                        music: profile.music || "미선택",
+                        hobby: profile.hobby || "미선택",
+                        mbti: profile.mbti || "미선택"
+                    });
+                }
+            } catch (err) {
+                console.error("Unexpected error:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         fetchProfile();
-    }, []);
+    }, [router]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">로딩 중...</div>;
-    if (!user) return <div className="min-h-screen flex items-center justify-center">유저 정보를 찾을 수 없습니다.</div>;
+    const handleLogout = async () => {
+        if (confirm("로그아웃 하시겠습니까?")) {
+            await supabase.auth.signOut();
+            router.push('/onboarding'); 
+        }
+    };
 
-    // 온보딩 데이터 매핑 (DB 컬럼명에 맞춰 수정 필요)
-    const userInterests = [
-        { category: "🎬 영화", value: user.movie, theme: "bg-purple-50 text-purple-600" },
-        { category: "🎵 음악", value: user.music, theme: "bg-blue-50 text-blue-600" },
-        { category: "🎸 취미", value: user.hobby, theme: "bg-pink-50 text-pink-600" },
-        { category: "🧠 성격", value: user.mbti, theme: "bg-indigo-50 text-indigo-600" },
-    ];
+    // 로딩 화면을 좀 더 세련되게 바꿨습니다.
+    if (loading) return (
+        <div className="bg-[#f5f7fb] min-h-screen flex flex-col items-center justify-center text-blue-600">
+            <Loader2 className="animate-spin mb-2" size={32} />
+            <span className="font-black">데이터를 불러오는 중입니다... 👋</span>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-gray-50 text-slate-900 pb-10">
-            <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-6 sticky top-0 z-10">
-                <h1 className="text-xl font-bold text-indigo-600">낙낙 (Knock Knock)</h1>
-            </nav>
+        <div className="bg-[#f5f7fb] min-h-screen flex flex-col">
+            <header className="flex justify-between items-center px-8 py-5 bg-white sticky top-0 z-50 shadow-sm border-b border-gray-50">
+                <Link href="/" className="logo font-black text-xl text-blue-600 tracking-tighter italic">
+                    KNOCK KNOCK
+                </Link>
+                <div className="flex gap-5 text-gray-400 items-center">
+                    <button className="hover:text-blue-600 transition-colors">
+                        <Bell size={20} strokeWidth={2.5} />
+                    </button>
+                    <button onClick={() => router.push('/onboarding?mode=edit')} className="hover:text-blue-600 transition-colors">
+                        <Settings size={20} strokeWidth={2.5} />
+                    </button>
+                </div>
+            </header>
 
-            <div className="max-w-xl mx-auto px-4 space-y-6">
-                <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center text-5xl mb-4 border-4 border-white shadow-md">
-                            {user.profile_emoji || "😵‍💫"}
-                        </div>
-                        <h2 className="text-2xl font-bold">{user.nickname || "이름 없음"}</h2>
-                        <p className="text-gray-500 text-sm mb-2">@{user.handle || "id_none"}</p>
-                        <p className="text-gray-600 text-sm max-w-xs">{user.bio || "자기소개가 없습니다."}</p>
-                        
-                        <div className="flex gap-8 mt-6 border-t border-gray-50 pt-6 w-full justify-center">
-                            <div className="text-center">
-                                <p className="text-xs text-gray-400 uppercase tracking-wider">Followers</p>
-                                <p className="font-bold text-lg">247</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-xs text-gray-400 uppercase tracking-wider">Following</p>
-                                <p className="font-bold text-lg">189</p>
-                            </div>
-                        </div>
+            <main className="container max-w-lg mx-auto p-6 space-y-6 mt-4 pb-32">
+                <section className="bg-white p-10 rounded-[35px] shadow-sm border border-gray-50 text-center">
+                    <div className="w-24 h-24 bg-gray-50 rounded-full mx-auto mb-6 flex items-center justify-center border border-gray-100 shadow-inner">
+                        <User size={48} strokeWidth={2} className="text-blue-200" />
                     </div>
+                    <h2 className="text-3xl font-black text-gray-900 leading-tight">{userData.nickname}</h2>
+                    <p className="text-gray-400 text-sm font-medium mt-1">{userData.userId}</p>
+                    <p className="text-gray-500 font-bold text-[13px] mt-4 px-4 leading-relaxed tracking-tight">{userData.bio}</p>
                 </section>
 
-                <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-end mb-6">
+                <section className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50">
+                    <div className="flex justify-between items-end mb-7 px-1">
                         <div>
-                            <h3 className="text-lg font-bold">나의 취향 키워드</h3>
-                            <p className="text-xs text-gray-400">온보딩에서 선택한 나의 관심사예요</p>
+                            <h3 className="text-xl font-black text-gray-900">나의 취향 키워프</h3>
+                            <p className="text-gray-400 text-[11px] font-bold mt-1.5">온보딩에서 선택한 나의 관심사에요</p>
                         </div>
-                        <button className="text-xs font-semibold text-indigo-600 hover:underline">수정하기</button>
+                        <button onClick={() => router.push('/onboarding?mode=edit')} className="text-[13px] font-black text-blue-600 hover:underline transition-all">수정하기</button>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                        {userInterests.map((item, idx) => (
-                            <div key={idx} className="p-4 rounded-2xl border border-gray-50 bg-gray-50/50 hover:bg-white hover:shadow-md transition-all">
-                                <p className="text-[10px] text-gray-400 mb-1 font-bold uppercase">{item.category}</p>
-                                <p className={`inline-block px-2 py-0.5 rounded-md text-xs font-bold ${item.theme}`}>
-                                    {item.value}
-                                </p>
-                            </div>
-                        ))}
+                    <div className="grid grid-cols-2 gap-3">
+                        <TasteCard Icon={Film} title="Movie" value={userData.movie} color="purple" />
+                        <TasteCard Icon={Music} title="Music" value={userData.music} color="blue" />
+                        <TasteCard Icon={Sparkles} title="Hobby" value={userData.hobby} color="pink" />
+                        <TasteCard Icon={Brain} title="Style" value={userData.mbti} color="indigo" />
                     </div>
                 </section>
 
-                <section className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
-                    <div className="p-2">
-                        {[{ label: "계정 설정", icon: "👤" }, { label: "최근 매칭 기록", icon: "🤝" }, { label: "알림 설정", icon: "🔔" }, { label: "고객센터", icon: "💬" }].map((menu, i) => (
-                            <button key={i} className="w-full flex items-center justify-between p-4 hover:bg-indigo-50/50 rounded-2xl transition-colors group">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-lg">{menu.icon}</span>
-                                    <span className="text-sm font-medium text-gray-700">{menu.label}</span>
-                                </div>
-                                <span className="text-gray-300 group-hover:text-indigo-400">→</span>
-                            </button>
-                        ))}
-                        <button className="w-full flex items-center gap-3 p-4 mt-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors">
-                            <span>🚪</span>
-                            <span className="text-sm font-medium">로그아웃</span>
-                        </button>
+                <section className="bg-white rounded-[35px] shadow-sm border border-gray-50 overflow-hidden">
+                    <div onClick={handleLogout} className="p-6 flex items-center justify-center gap-2 hover:bg-red-50 cursor-pointer transition-all group">
+                        <LogOut size={16} className="text-red-300 group-hover:text-red-500 transition-colors" />
+                        <span className="text-[13px] font-black text-red-300 group-hover:text-red-500 transition-colors">로그아웃</span>
                     </div>
                 </section>
+            </main>
+
+            <BottomNav />
+        </div>
+    );
+}
+
+function TasteCard({ Icon, title, value, color }: { Icon: any, title: string, value: string, color: string }) {
+    const colorMap: any = {
+        purple: "text-purple-600 bg-purple-50",
+        blue: "text-blue-600 bg-blue-50",
+        pink: "text-pink-600 bg-pink-50",
+        indigo: "text-indigo-600 bg-indigo-50",
+    };
+    return (
+        <div className="bg-[#FBFBFF] rounded-[24px] p-5 flex flex-col gap-3 border border-gray-50/50 hover:shadow-md transition-shadow cursor-default">
+            <div className="flex items-center gap-2 text-gray-400">
+                <Icon size={14} strokeWidth={2.5} />
+                <span className="text-[10px] font-black uppercase tracking-tighter">{title}</span>
             </div>
+            <span className={`text-[12px] font-black ${colorMap[color]} px-3 py-1.5 rounded-xl inline-block self-start shadow-sm`}>
+                {value}
+            </span>
         </div>
     );
 }

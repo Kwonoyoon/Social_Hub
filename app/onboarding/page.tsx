@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from "next/navigation";
-import { supabase } from '@/app/lib/supabase'; // 경로 확인 필수!
+import { supabase } from '@/app/lib/supabase'; // 경로 에러 나면 @/lib/supabase 확인!
 
 // --- 데이터 정의 ---
 const interestData = {
@@ -56,31 +56,35 @@ export default function OnboardingPage() {
     </div>
   );
 
+  // ★ 이 부분이 터보팩 에러 방지용으로 수정된 함수입니다 ★
   const renderInterestButtons = (category: 'movie' | 'music' | 'hobby', data: string[]) => (
     <div className="grid grid-cols-2 gap-4 w-full mt-6">
-      {data.map(item => (
-        <button 
-          key={item}
-          onClick={() => {
-            const currentList = onboardingData[category];
-            const next = currentList.includes(item) 
-              ? currentList.filter(i => i !== item)
-              : [...currentList, item];
-            setOnboardingData({...onboardingData, [category]: next});
-          }}
-          className={`py-4 rounded-2xl border-2 font-bold transition-all text-sm shadow-sm ${
-            onboardingData[category].includes(item) 
-              ? 'border-blue-600 bg-blue-600 text-white shadow-blue-200' 
-              : 'border-gray-100 text-gray-400 bg-white hover:border-blue-200'
-          }`}
-        >
-          {item}
-        </button>
-      ))}
+      {data.map(item => {
+        const currentList = onboardingData[category] as string[];
+        const isSelected = currentList.includes(item);
+
+        return (
+          <button 
+            key={item}
+            onClick={() => {
+              const next = isSelected 
+                ? currentList.filter(i => i !== item)
+                : [...currentList, item];
+              setOnboardingData({...onboardingData, [category]: next});
+            }}
+            className={`py-4 rounded-2xl border-2 font-bold transition-all text-sm shadow-sm ${
+              isSelected 
+                ? 'border-blue-600 bg-blue-600 text-white shadow-blue-200' 
+                : 'border-gray-100 text-gray-400 bg-white hover:border-blue-200'
+            }`}
+          >
+            {item}
+          </button>
+        );
+      })}
     </div>
   );
 
-  // ★ 수정된 핵심 로직: user 테이블에 취향 데이터를 직접 포함하여 저장
   const handleFinish = async () => {
     setLoading(true);
     try {
@@ -93,21 +97,19 @@ export default function OnboardingPage() {
         if (authError) throw authError;
 
         if (authData?.user) {
-          // DB의 컬럼명(movie, music, hobby, mbti)에 맞춰 데이터를 한 번에 넣습니다
           const { error: dbError } = await supabase.from('user').insert([{
             id: authData.user.id,
             email: onboardingData.email,
             nickname: onboardingData.nickname,
             university: onboardingData.university,
             mbti: onboardingData.mbti,
-            movie: onboardingData.movie.join(', '), // 배열을 "액션, 공포" 형태의 문자열로 변환
+            movie: onboardingData.movie.join(', '), 
             music: onboardingData.music.join(', '),
             hobby: onboardingData.hobby.join(', ')
           }]);
 
           if (dbError) throw dbError;
 
-          // 추가적인 hobby_tag 테이블 관리가 필요할 경우 실행
           const allSelected = [...onboardingData.movie, ...onboardingData.music, ...onboardingData.hobby];
           const { data: tags } = await supabase.from('hobby_tag').select('id').in('name', allSelected);
 
