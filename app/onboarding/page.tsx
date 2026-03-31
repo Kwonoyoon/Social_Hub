@@ -80,7 +80,6 @@ export default function OnboardingPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // DB에 저장할 데이터 형식 정리 (배열의 첫 번째 값을 문자열로 추출)
       const updatePayload = {
         movie: onboardingData.movie[0] || "",
         music: onboardingData.music[0] || "",
@@ -89,7 +88,6 @@ export default function OnboardingPage() {
       };
 
       if (isEditMode) {
-        // --- 1. 수정 모드 ---
         if (!session?.user) throw new Error("로그인 정보가 없습니다.");
         const { error } = await supabase
           .from('user')
@@ -101,7 +99,6 @@ export default function OnboardingPage() {
         router.push('/mypage');
 
       } else if (isSignupMode) {
-        // --- 2. 회원가입 모드 ---
         if (!isAgreed) { alert("이용약관에 동의해주세요!"); setLoading(false); return; }
         
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -111,7 +108,9 @@ export default function OnboardingPage() {
         if (authError) throw authError;
 
         if (authData.user) {
-          // 회원가입 시 유저 테이블에 모든 정보 한꺼번에 insert
+          // ✅ 회원가입 성공 시 ID 저장
+          localStorage.setItem('userId', authData.user.id);
+
           const { error: dbError } = await supabase.from('user').insert([{
             id: authData.user.id,
             email: onboardingData.email,
@@ -125,12 +124,19 @@ export default function OnboardingPage() {
         router.push('/');
 
       } else {
-        // --- 3. 로그인 모드 ---
-        const { error: loginError } = await supabase.auth.signInWithPassword({
+        // --- 로그인 모드 ---
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
           email: onboardingData.email,
           password: onboardingData.pw,
         });
+        
         if (loginError) throw loginError;
+
+        // ✅ 로그인 성공 시 실제 유저 ID 저장
+        if (loginData?.user) {
+          localStorage.setItem('userId', loginData.user.id);
+        }
+        
         router.push('/');
       }
     } catch (err: any) {
@@ -164,7 +170,7 @@ export default function OnboardingPage() {
                   <div className="mt-4 p-5 bg-blue-50 rounded-[24px] border border-blue-100">
                     <div className="flex items-start gap-3">
                       <input type="checkbox" checked={isAgreed} onChange={(e) => setIsAgreed(e.target.checked)} className="w-5 h-5 mt-0.5 accent-blue-600 cursor-pointer" />
-                      <label className="text-[13px] text-gray-600 leading-tight font-medium font-black">
+                      <label className="text-[13px] text-gray-600 leading-tight font-black">
                         <button type="button" onClick={() => setShowTerms(true)} className="text-blue-700 underline">이용약관</button> 및 <button type="button" onClick={() => setShowTerms(true)} className="text-blue-700 underline">개인정보 처리방침</button>에 동의합니다.
                       </label>
                     </div>

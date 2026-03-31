@@ -16,7 +16,7 @@ body {
 }
 
 /* =========================
-   Header
+Header
 ========================= */
 .header {
     height: 64px;
@@ -190,10 +190,73 @@ body {
 }
 
 /* responsive */
-@media (max-width: 600px) {
+/* =========================
+   Responsive Upgrade (반응형 최적화)
+========================= */
+
+/* 1. 태블릿 및 작은 모니터 (1024px 이하) */
+@media (max-width: 1024px) {
+    .container, .wrap {
+        max-width: 100%;
+        padding: 16px;
+    }
+    
+    /* 사이드바를 아래로 내리고 메인을 넓게 */
+    .grid {
+        grid-template-columns: 1fr 1fr; /* 사이드바 300px 제거 */
+    }
+}
+
+/* 2. 모바일 일반 (768px 이하) */
+@media (max-width: 768px) {
+    .header {
+        padding: 0 16px;
+    }
+    
+    .profile-name, .profile-school {
+        display: none; /* 모바일에선 이름 숨기고 아이콘만 */
+    }
+
+    .grid {
+        grid-template-columns: 1fr; /* 모든 카드를 한 줄로 세로 정렬 */
+    }
+
+    .list-grid {
+        grid-template-columns: 1fr; /* 하단 모임 리스트도 한 줄로 */
+    }
+
+    .list-section {
+        grid-column: span 1;
+    }
+
+    .feature {
+        height: 250px; /* 이미지 카드 높이 축소 */
+    }
+}
+
+/* 3. 초소형 모바일 (480px 이하) */
+@media (max-width: 480px) {
     .category-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr); /* 아이콘 3개씩 배치 */
+        gap: 10px;
+    }
+
+    .category-box {
+        width: 100%; /* 너비 꽉 차게 */
+        height: 70px;
+        font-size: 20px;
+    }
+
+    .top-tabs {
+        overflow-x: auto; /* 탭이 많으면 옆으로 스크롤 가능하게 */
+        white-space: nowrap;
+        padding-bottom: 8px;
+    }
+
+    .pill {
+        padding: 8px 16px;
+        font-size: 13px;
     }
 }
 

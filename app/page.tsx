@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase"; 
 import BottomNav from "./components/BottomNav";
-// 👈 이 부분이 빠져있으면 에러가 납니다! 꼭 확인해주세요.
 import { Search, Bell, User } from "lucide-react"; 
 
 export default function MainPage() {
@@ -61,7 +60,6 @@ export default function MainPage() {
 
     const userTags = [userData.movie, userData.music, userData.hobby].filter(tag => tag && tag !== "");
 
-    // 카테고리 데이터: path를 미리 정의해서 클릭 시 이동하게 합니다.
     const categories = [
         { name: "영화", icon: "🎬", color: "bg-pink-50", path: "/category/movie" },
         { name: "음악", icon: "🎵", color: "bg-blue-50", path: "/category/music" },
@@ -71,7 +69,7 @@ export default function MainPage() {
 
     return (
         <div className="min-h-screen bg-[#f5f7fb] flex flex-col items-center">
-            {/* 상단 헤더: Lucide 아이콘 적용 */}
+            {/* 상단 헤더 */}
             <header className="w-full bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
                 <div className="max-w-lg mx-auto flex justify-between items-center px-6 py-4">
                     <h1 className="text-xl font-black italic text-blue-600 tracking-tighter cursor-pointer" onClick={() => router.push('/')}>
@@ -86,7 +84,6 @@ export default function MainPage() {
                             <Bell size={20} strokeWidth={2.5} />
                             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                         </button>
-                        {/* 😵‍💫 대신 세련된 User 아이콘 프로필 버튼 */}
                         <button 
                             onClick={() => router.push('/mypage')} 
                             className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 shadow-inner hover:bg-blue-50 transition-all group"
@@ -98,7 +95,7 @@ export default function MainPage() {
             </header>
 
             <main className="max-w-lg w-full p-6 space-y-6 pb-32">
-                {/* 웰컴 섹션 */}
+                {/* 웰컴 섹션: 매칭 시작 버튼 연결 완료 */}
                 <section className="bg-white p-8 rounded-[35px] shadow-sm flex justify-between items-center border border-gray-50">
                     <div className="space-y-1">
                         <h2 className="text-2xl font-black text-gray-900 leading-tight">
@@ -106,7 +103,11 @@ export default function MainPage() {
                         </h2>
                         <p className="text-gray-400 font-bold text-xs">오늘은 어떤 친구를 만나볼까요?</p>
                     </div>
-                    <button className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black shadow-md hover:bg-blue-700 transition-all text-xs">
+                    {/* ✅ onClick 이벤트 추가 */}
+                    <button 
+                        onClick={() => router.push('/match')}
+                        className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black shadow-md hover:bg-blue-700 transition-all text-xs active:scale-95"
+                    >
                         매칭 시작
                     </button>
                 </section>
