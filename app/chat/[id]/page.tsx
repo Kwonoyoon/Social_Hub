@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 // 💡 Supabase 불러오기 (경로가 다르면 파일 위치에 맞게 수정해주세요!)
-import { supabase } from '@/app/lib/supabase'; 
+import { supabase } from '@/app/lib/supabase';
 
 const socket = io("http://localhost:5000");
 
@@ -13,32 +13,20 @@ const INITIAL_MESSAGES = [
     { id: 1, sender: '시스템', avatar: 'https://cdn-icons-png.flaticon.com/512/4712/4712010.png', type: 'text', content: '채팅방에 입장하셨습니다.', time: '', isMine: false },
 ];
 
-const DUMMY_PARTICIPANTS = [
-    { id: 1, name: '방장', role: '방장', isMe: false, avatar: 'https://loremflickr.com/200/200/girl,face?random=10' },
-];
-
-// 예쁜 색감이 들어간 첨부 칩 컴포넌트
-const AttachmentChip = ({ text, icon, iconColor }: { text: string; icon: React.ReactNode; iconColor: string }) => (
-    <button className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-neutral-200 hover:bg-neutral-50 transition-colors text-sm font-medium text-gray-700 bg-white shadow-sm">
-        <div className={iconColor}>{icon}</div>
-        {text}
-    </button>
-);
-
 export default function ChatRoomPolished() {
     const router = useRouter();
     const params = useParams();
-    const roomId = params?.id as string; 
+    const roomId = params?.id as string;
 
     const [messages, setMessages] = useState(INITIAL_MESSAGES);
     const [message, setMessage] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isAttachmentOpen, setIsAttachmentOpen] = useState(false);
-    
-    // 💡 로그인한 내 진짜 정보를 담아둘 공간
+
+    // 💡 1. 로그인한 내 진짜 정보(UUID 포함)를 담아둘 공간
     const [currentUser, setCurrentUser] = useState({
+        id: '', // UUID가 들어갈 자리 추가 완료!
         nickname: '로딩중...',
-        avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' // 기본 프로필 사진
+        avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
     });
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,36 +34,34 @@ export default function ChatRoomPolished() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // 💡 1. 페이지 접속 시 Supabase에서 내 닉네임 가져오기
+    // 💡 2. 페이지 접속 시 Supabase에서 내 진짜 UUID와 닉네임 가져오기
     useEffect(() => {
         const fetchMyInfo = async () => {
-            // 현재 로그인된 유저 확인
             const { data: { user } } = await supabase.auth.getUser();
-            
+
             if (user) {
-                // user 테이블에서 내 nickname 찾아오기
                 const { data: userData, error } = await supabase
-                    .from('user') // ERD에 적힌 테이블 이름
+                    .from('user')
                     .select('nickname')
                     .eq('id', user.id)
                     .single();
 
                 if (userData) {
                     setCurrentUser({
+                        id: user.id, // 👈 내 진짜 UUID (학번) 저장!
                         nickname: userData.nickname,
-                        // DB에 프사 컬럼이 없으므로, 닉네임 기반으로 랜덤 로봇 프사 생성 (임시)
                         avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.nickname}`
                     });
                 }
             } else {
-                setCurrentUser({ nickname: '익명유저', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' });
+                setCurrentUser({ id: 'anonymous', nickname: '익명유저', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' });
             }
         };
 
         fetchMyInfo();
     }, []);
 
-    // 💡 2. 소켓 연결 및 메시지 수신 세팅
+    // 💡 3. 소켓 연결 및 메시지 수신 세팅
     useEffect(() => {
         if (!roomId) return;
 
@@ -83,13 +69,13 @@ export default function ChatRoomPolished() {
 
         socket.on('receive_message', (data) => {
             const incomingMessage = {
-                id: Date.now(), 
-                sender: data.sender, // 👈 보낸 사람의 진짜 닉네임
-                avatar: data.avatar, // 👈 보낸 사람의 프로필 사진
+                id: Date.now(),
+                sender: data.sender,
+                avatar: data.avatar,
                 type: data.type || 'text',
                 content: data.message,
                 time: data.time,
-                isMine: false, 
+                isMine: false,
             };
             setMessages((prev) => [...prev, incomingMessage]);
         });
@@ -103,17 +89,18 @@ export default function ChatRoomPolished() {
         scrollToBottom();
     }, [messages]);
 
-    // 💡 3. 메시지 보낼 때 내 진짜 정보 같이 쏘기
+    // 💡 4. 메시지 보낼 때 내 진짜 UUID 같이 쏘기
     const handleSendMessage = () => {
         if (!message.trim()) return;
 
         const timeNow = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 
-        socket.emit('send_message', { 
-            room: roomId, 
+        socket.emit('send_message', {
+            room: roomId,
             message: message,
-            sender: currentUser.nickname, // 👈 고정된 '나' 대신 진짜 닉네임 전송!
-            avatar: currentUser.avatar,   
+            sender_id: currentUser.id, // 🚀 백엔드로 UUID 전송! (DB 저장용)
+            sender: currentUser.nickname,
+            avatar: currentUser.avatar,
             type: 'text',
             time: timeNow
         });
@@ -127,19 +114,16 @@ export default function ChatRoomPolished() {
             time: timeNow,
             isMine: true,
         };
-        
+
         setMessages([...messages, newMessage]);
         setMessage('');
-        setIsAttachmentOpen(false);
     };
 
     return (
         <div className="flex flex-col h-screen bg-neutral-50 overflow-hidden">
-            {/* 화면 중앙 메인 컨테이너 */}
             <div className="flex-1 w-full max-w-[1440px] mx-auto p-4 lg:p-12 h-full min-h-0 flex flex-col">
                 <div className="flex-1 bg-white rounded-3xl border border-neutral-200 shadow-lg flex flex-col relative overflow-hidden min-h-0">
                     
-                    {/* 헤더 */}
                     <header className="flex-shrink-0 flex items-center justify-between px-6 lg:px-8 py-5 border-b border-neutral-100 bg-white z-20">
                         <div className="flex items-center gap-4">
                             <button onClick={() => router.push('/chat')} className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
@@ -163,7 +147,6 @@ export default function ChatRoomPolished() {
                         </button>
                     </header>
 
-                    {/* 메시지 리스트 영역 */}
                     <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 bg-white">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex items-start gap-4 lg:gap-5 ${msg.isMine ? 'justify-end' : ''}`}>
@@ -182,7 +165,6 @@ export default function ChatRoomPolished() {
                         <div ref={messagesEndRef} />
                     </main>
 
-                    {/* 하단 입력 영역 */}
                     <footer className="flex-shrink-0 border-t border-neutral-100 bg-white px-6 py-4 lg:px-8 lg:py-6 z-20">
                         <div className="flex items-center gap-3">
                             <button className="w-12 h-12 lg:w-14 lg:h-14 flex-shrink-0 border-[2.5px] border-gray-800 rounded-[14px] lg:rounded-2xl flex items-center justify-center text-gray-800 hover:bg-gray-100 transition-colors">
