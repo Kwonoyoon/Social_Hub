@@ -60,12 +60,14 @@ export default function MainPage() {
 
     const userTags = [userData.movie, userData.music, userData.hobby].filter(tag => tag && tag !== "");
 
-    const categories = [
-        { name: "영화", icon: "🎬", color: "bg-pink-50", path: "/category/movie" },
-        { name: "음악", icon: "🎵", color: "bg-blue-50", path: "/category/music" },
-        { name: "여행", icon: "✈️", color: "bg-green-50", path: "/category/travel" },
-        { name: "게임", icon: "🎮", color: "bg-purple-50", path: "/category/game" }
-    ];
+    // ✅ 수정 포인트: 게임의 path를 "/game"으로 변경하여 실제 파일 위치와 맞췄습니다.
+    // ✅ 수정 포인트: path를 새로운 폴더 구조인 /meeting/[category] 에 맞게 변경했습니다.
+const categories = [
+    { name: "영화", icon: "🎬", color: "bg-pink-50", path: "/meeting/movie" },
+    { name: "음악", icon: "🎵", color: "bg-blue-50", path: "/meeting/music" },
+    { name: "여행", icon: "✈️", color: "bg-green-50", path: "/meeting/travel" },
+    { name: "게임", icon: "🎮", color: "bg-purple-50", path: "/meeting/game" } 
+];
 
     return (
         <div className="min-h-screen bg-[#f5f7fb] flex flex-col items-center">
@@ -95,7 +97,7 @@ export default function MainPage() {
             </header>
 
             <main className="max-w-lg w-full p-6 space-y-6 pb-32">
-                {/* 웰컴 섹션: 매칭 시작 버튼 연결 완료 */}
+                {/* 웰컴 섹션 */}
                 <section className="bg-white p-8 rounded-[35px] shadow-sm flex justify-between items-center border border-gray-50">
                     <div className="space-y-1">
                         <h2 className="text-2xl font-black text-gray-900 leading-tight">
@@ -103,7 +105,6 @@ export default function MainPage() {
                         </h2>
                         <p className="text-gray-400 font-bold text-xs">오늘은 어떤 친구를 만나볼까요?</p>
                     </div>
-                    {/* ✅ onClick 이벤트 추가 */}
                     <button 
                         onClick={() => router.push('/match')}
                         className="bg-blue-600 text-white px-6 py-3.5 rounded-2xl font-black shadow-md hover:bg-blue-700 transition-all text-xs active:scale-95"

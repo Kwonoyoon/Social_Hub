@@ -21,15 +21,12 @@ export default function MatchPage() {
     const router = useRouter();
 
     useEffect(() => {
-        // ✅ 1. 컴포넌트가 마운트된 후(클라이언트 브라우저 환경) localStorage 확인
         const checkAuthAndFetch = async () => {
             const storedId = localStorage.getItem('userId');
             
-            // 디버깅용: F12 콘솔창에서 ID가 찍히는지 확인해보세요!
             console.log("📍 로컬스토리지에서 가져온 ID:", storedId);
 
             if (!storedId) {
-                // ⚠️ 바로 alert 띄우지 않고 0.5초 정도 유예를 줌 (Next.js 하이드레이션 대응)
                 setTimeout(() => {
                     if (!localStorage.getItem('userId')) {
                         alert("로그인 정보가 유실되었습니다. 다시 로그인해주세요.");
@@ -41,15 +38,18 @@ export default function MatchPage() {
             
             setMyUuid(storedId);
 
-            // 2. API 호출
             try {
                 const res = await fetch(`http://localhost:5000/api/match?userId=${storedId}`);
                 const data = await res.json();
 
                 if (Array.isArray(data)) {
-                    // 내 정보가 섞여 나오지 않도록 한 번 더 필터링
+                    // 1. 내 정보 제외 필터링
                     const strangersOnly = data.filter((user: LikeUser) => String(user.userId) !== String(storedId));
-                    setLikes(strangersOnly);
+                    
+                    // ✅ 수정 포인트: 상위 4명까지만 노출하도록 제한 (3~4명 유지)
+                    const limitedMatches = strangersOnly.slice(0, 4); 
+                    
+                    setLikes(limitedMatches);
                 } else {
                     console.error("데이터 형식이 배열이 아닙니다:", data);
                 }
@@ -80,7 +80,6 @@ export default function MatchPage() {
 
             const data = await res.json();
 
-            // 하트 클릭 시 매칭 성공이면 즉시 1:1 채팅방 이동
             if (action === 'like' && data.roomId) {
                 router.push(`/chat/${data.roomId}`);
             } else {
@@ -94,7 +93,6 @@ export default function MatchPage() {
 
     const currentUser = likes[currentIndex];
 
-    // ✅ 로딩 중일 때 보여줄 화면
     if (isLoading && !myUuid) {
         return (
             <div className="flex flex-col h-screen items-center justify-center bg-neutral-50">
