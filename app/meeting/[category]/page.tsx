@@ -14,7 +14,6 @@ export default function UnifiedCategoryPage() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [showAll, setShowAll] = useState(false);
 
-    // [모든 모달 상태 완벽 복구]
     const [infoModalRoom, setInfoModalRoom] = useState<any | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newRoom, setNewRoom] = useState({ title: '', description: '', max_capacity: 4, password: '' });
@@ -38,7 +37,6 @@ export default function UnifiedCategoryPage() {
             const { data, error } = await supabase.from('meeting').select('*').order('created_at', { ascending: false });
             if (error) throw error;
             
-            // 카테고리별 데이터 필터링
             const filtered = (data || []).filter(room => 
                 room.title.includes(cur.title) || (room.description && room.description.includes(cur.title))
             );
@@ -53,30 +51,95 @@ export default function UnifiedCategoryPage() {
         return meetings[Math.floor(Math.random() * meetings.length)];
     }, [meetings]);
 
-    // [기능 로직 복구]
+    // 💡 [핵심 수정] DB에 입장 기록을 남기는 공통 함수
+    const joinMeetingDB = async (room: any) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return alert("로그인이 필요합니다!");
+
+        try {
+            // meeting_participant 테이블에 입장 기록 추가 (중복 방지는 DB가 처리)
+            const { error } = await supabase
+                .from('meeting_participant')
+                .insert([{ 
+                    meeting_id: room.meeting_id, 
+                    user_id: session.user.id,
+                    role: 'member'
+                }]);
+
+            // 이미 참여 중인 경우(23505 에러)는 무시하고 진행
+            if (error && error.code !== '23505') throw error;
+
+            // 도장 찍기 성공 후 채팅방으로 이동
+            router.push(`/chat/${room.room_id}`);
+        } catch (err) {
+            console.error("입장 기록 실패:", err);
+            alert("모임 참여에 실패했습니다.");
+        }
+    };
+
     const handleJoinRequest = (room: any) => {
-        if (room.password) { setPassModalRoom(room); setInputPassword(''); } 
-        else { router.push(`/chat/${room.meeting_id}`); }
+        if (room.password) { 
+            setPassModalRoom(room); 
+            setInputPassword(''); 
+        } else { 
+            joinMeetingDB(room); // 💡 비번 없으면 바로 도장 찍고 입장
+        }
     };
 
     const handlePasswordSubmit = () => {
-        if (inputPassword === passModalRoom.password) router.push(`/chat/${passModalRoom.meeting_id}`);
-        else { alert("비밀번호가 틀렸습니다! 🔒"); setInputPassword(''); }
+        if (inputPassword === passModalRoom.password) {
+            joinMeetingDB(passModalRoom); // 💡 비번 맞으면 도장 찍고 입장
+            setPassModalRoom(null);
+        } else { 
+            alert("비밀번호가 틀렸습니다! 🔒"); 
+            setInputPassword(''); 
+        }
     };
 
     const handleCreateRoom = async () => {
         if (!newRoom.title.trim()) return alert("제목을 입력해주세요!");
         try {
-            const { error } = await supabase.from('meeting').insert([{ 
-                host_id: currentUserId, title: `[${cur.title}] ${newRoom.title}`,
-                description: newRoom.description, max_capacity: newRoom.max_capacity, 
-                password: newRoom.password || null, status: 'ACTIVE' 
+            // 1. 먼저 chat_room 테이블에 방 생성 (모임용 채팅방)
+            const { data: roomData, error: roomError } = await supabase
+                .from('chat_room')
+                .insert([{ room_type: 'group' }])
+                .select()
+                .single();
+            
+            if (roomError) throw roomError;
+
+            // 2. 생성된 room_id와 함께 meeting 테이블에 모임 생성
+            const { data: meetingData, error: meetingError } = await supabase
+                .from('meeting')
+                .insert([{ 
+                    host_id: currentUserId, 
+                    title: `[${cur.title}] ${newRoom.title}`,
+                    description: newRoom.description, 
+                    max_capacity: newRoom.max_capacity, 
+                    password: newRoom.password || null, 
+                    status: 'ACTIVE',
+                    room_id: roomData.id // 💡 채팅방과 연결!
+                }])
+                .select()
+                .single();
+
+            if (meetingError) throw meetingError;
+
+            // 3. 모임을 만든 사람(방장)도 참여자로 자동 등록 (그래야 본인 리스트에도 뜸)
+            await supabase.from('meeting_participant').insert([{
+                meeting_id: meetingData.meeting_id,
+                user_id: currentUserId,
+                role: 'host'
             }]);
-            if (error) throw error;
+
             setIsCreateModalOpen(false);
             setNewRoom({ title: '', description: '', max_capacity: 4, password: '' });
             fetchData();
-        } catch (err) { alert("생성 실패"); }
+            alert("모임이 생성되었습니다! 🚀");
+        } catch (err) { 
+            console.error(err);
+            alert("생성 실패"); 
+        }
     };
 
     const handleDeleteRoom = async (meetingId: string) => {
@@ -89,6 +152,7 @@ export default function UnifiedCategoryPage() {
 
     return (
         <div className="min-h-screen bg-[#f1f3f9] p-6 md:p-10 flex justify-center text-gray-900 overflow-x-hidden">
+            {/* ... (이하 JSX 코드는 기존과 동일하므로 생략하지만, 실제 코드 작성시에는 그대로 두시면 됩니다) ... */}
             <div className="w-full max-w-[1400px] flex flex-col lg:flex-row gap-8">
                 
                 <div className="flex-1 bg-white rounded-[50px] p-8 md:p-12 shadow-sm border border-white">
@@ -154,7 +218,6 @@ export default function UnifiedCategoryPage() {
                     </section>
                 </div>
 
-                {/* 사이드바 */}
                 <aside className="w-full lg:w-[380px] space-y-8">
                     <div className="bg-white rounded-[40px] p-8 shadow-sm border border-white">
                         <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2"><span className="text-blue-600 text-xl">🎲</span> 랜덤 추천 모임</h3>
@@ -180,7 +243,6 @@ export default function UnifiedCategoryPage() {
                 </aside>
             </div>
 
-            {/* [모달 렌더링 코드 완벽 복구] */}
             {passModalRoom && (
                 <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md flex items-center justify-center z-[150] p-4">
                     <div className="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl animate-in zoom-in-95">

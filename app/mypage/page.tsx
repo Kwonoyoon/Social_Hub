@@ -10,14 +10,15 @@ export default function MyPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     
+    // 💡 여러 개를 담기 위해 초기값을 빈 배열([])로 변경했습니다.
     const [userData, setUserData] = useState({
         nickname: "사용자",
         userId: "@user",
         bio: "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
-        movie: "데이터 없음",
-        music: "데이터 없음",
-        hobby: "데이터 없음",
-        mbti: "데이터 없음"
+        movie: [] as string[],
+        music: [] as string[],
+        hobby: [] as string[],
+        mbti: [] as string[]
     });
 
     useEffect(() => {
@@ -42,14 +43,15 @@ export default function MyPage() {
 
                 if (data && data.length > 0) {
                     const profile = data[0];
+                    // 💡 DB에서 온 데이터가 혹시 배열이 아니더라도 에러가 나지 않도록 배열로 감싸주는 방어 코드 추가
                     setUserData({
                         nickname: profile.nickname || "오윤",
                         userId: `@${profile.nickname || "user"}`,
                         bio: profile.bio || "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
-                        movie: profile.movie || "미선택",
-                        music: profile.music || "미선택",
-                        hobby: profile.hobby || "미선택",
-                        mbti: profile.mbti || "미선택"
+                        movie: Array.isArray(profile.movie) ? profile.movie : (profile.movie ? [profile.movie] : []),
+                        music: Array.isArray(profile.music) ? profile.music : (profile.music ? [profile.music] : []),
+                        hobby: Array.isArray(profile.hobby) ? profile.hobby : (profile.hobby ? [profile.hobby] : []),
+                        mbti: Array.isArray(profile.mbti) ? profile.mbti : (profile.mbti ? [profile.mbti] : [])
                     });
                 }
             } catch (err) {
@@ -126,22 +128,34 @@ export default function MyPage() {
     );
 }
 
-function TasteCard({ emoji, title, value, color }: { emoji: string, title: string, value: string, color: string }) {
+// 💡 TasteCard의 value 타입을 배열(string[])로 변경했습니다.
+function TasteCard({ emoji, title, value, color }: { emoji: string, title: string, value: string[], color: string }) {
     const colorMap: any = {
         purple: "text-purple-600 bg-purple-50",
         blue: "text-blue-600 bg-blue-50",
         pink: "text-pink-600 bg-pink-50",
         indigo: "text-indigo-600 bg-indigo-50",
     };
+    
     return (
         <div className="bg-[#FBFBFF] rounded-[24px] p-5 flex flex-col gap-3 border border-gray-50/50">
             <div className="flex items-center gap-2 text-gray-400">
                 <span className="text-sm">{emoji}</span>
                 <span className="text-[10px] font-black uppercase tracking-tighter">{title}</span>
             </div>
-            <span className={`text-[13px] font-black ${colorMap[color]} px-3 py-1.5 rounded-xl inline-block self-start shadow-sm`}>
-                {value}
-            </span>
+            
+            {/* 💡 배열 데이터를 map으로 순회하며 각각의 태그를 만들어냅니다. flex-wrap으로 자동 줄바꿈 처리! */}
+            <div className="flex flex-wrap gap-1.5">
+                {value && value.length > 0 ? (
+                    value.map((item, index) => (
+                        <span key={index} className={`text-[12px] font-black ${colorMap[color]} px-2.5 py-1.5 rounded-xl inline-block shadow-sm`}>
+                            {item}
+                        </span>
+                    ))
+                ) : (
+                    <span className="text-[12px] font-bold text-gray-400 px-1 py-1.5">미선택</span>
+                )}
+            </div>
         </div>
     );
 }

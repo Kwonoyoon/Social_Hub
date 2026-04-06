@@ -80,11 +80,12 @@ export default function OnboardingPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // 💡 팀원분이 DB를 통째로 배열로 바꾼 것에 맞춰서 MBTI도 배열[]로 감싸서 보냅니다!
       const updatePayload = {
-        movie: onboardingData.movie[0] || "",
-        music: onboardingData.music[0] || "",
-        hobby: onboardingData.hobby[0] || "",
-        mbti: onboardingData.mbti,
+        movie: onboardingData.movie,
+        music: onboardingData.music,
+        hobby: onboardingData.hobby,
+        mbti: [onboardingData.mbti], 
       };
 
       if (isEditMode) {

@@ -1,19 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
 
-const DUMMY_CHATS = [
-    { id: 1, type: 'group', title: '영화 덕후 모임', titleIcon: '🎬', memberCount: 12, lastMessage: '이번 주말 영화 추천 받습니다!', time: '30분 전', unreadCount: 5, avatarColor: 'bg-neutral-900', avatarText: '🎬' },
-    { id: 2, type: 'private', title: '이서연', lastMessage: '내일 카페에서 만날까?', time: '1시간 전', unreadCount: 1, isOnline: true, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '👩', textColor: 'text-gray-900' },
-    { id: 3, type: 'group', title: 'K-POP 러버스', titleIcon: '🎤', memberCount: 8, lastMessage: '신곡 나왔어요!!', time: '2시간 전', unreadCount: 0, avatarColor: 'bg-neutral-900', avatarText: '🎤' },
-    { id: 4, type: 'private', title: '강하늘', lastMessage: '오케이 내일 보자!', time: '어제', unreadCount: 0, isOnline: false, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '🧑', textColor: 'text-gray-900' },
-    { id: 5, type: 'group', title: '게임 같이해요', titleIcon: '🎮', memberCount: 15, lastMessage: '저녁 9시에 롤 할 사람~', time: '어제', unreadCount: 3, avatarColor: 'bg-neutral-900', avatarText: '🎮' },
-    { id: 6, type: 'private', title: '민지', lastMessage: '숙제 끝!', time: '3분 전', unreadCount: 0, isOnline: true, avatarColor: 'bg-neutral-100 border border-neutral-200', avatarText: '👩‍💻', textColor: 'text-gray-900' },
-    { id: 7, type: 'group', title: '독서 토론', titleIcon: '📖', memberCount: 10, lastMessage: '이번 주 모임은 언제죠?', time: '20분 전', unreadCount: 2, avatarColor: 'bg-neutral-900', avatarText: '📖' }
-];
-
+// --- 승환님의 예쁜 UI 컴포넌트 유지 ---
 const AiRobotBadge = ({ className }: { className?: string }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path d="M12 2C9.24 2 7 4.24 7 7V17H17V7C17 4.24 14.76 2 12 2Z" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="white" />
@@ -31,14 +22,42 @@ const FilterChip = ({ text, icon, isActive }: { text: string; icon?: React.React
         {text}
     </button>
 );
+// ----------------------------------------
 
 export default function ChatListPolished() {
     const [searchQuery, setSearchQuery] = useState('');
     const router = useRouter();
+    
+    // 💡 DB에서 가져온 진짜 데이터를 담을 상태 변수
+    const [chatRooms, setChatRooms] = useState<any[]>([]); 
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchChatRooms = async () => {
+            const storedId = localStorage.getItem('userId');
+            if (!storedId) return;
+
+            setLoading(true);
+            try {
+                // 백엔드 API에서 내 채팅방 목록 가져오기
+                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${storedId}`);
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    setChatRooms(data);
+                }
+            } catch (err) {
+                console.error("채팅 목록 불러오기 실패:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchChatRooms();
+    }, []);
 
     return (
         <div className="flex flex-col min-h-screen bg-neutral-50">
-            {/* p-16을 p-5로 줄여서 모바일 여백 확보 */}
             <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto p-5 md:p-10">
                 <header className="mb-6">
                     <h1 className="text-2xl font-bold text-gray-950 mb-4">채팅</h1>
@@ -56,7 +75,6 @@ export default function ChatListPolished() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    {/* 칩들이 옆으로 넘어가도록 overflow-x-auto 추가 */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                         <FilterChip text="전체" icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" strokeWidth="2"/></svg>} isActive />
                         <FilterChip text="그룹" icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" strokeWidth="2"/></svg>} />
@@ -66,58 +84,67 @@ export default function ChatListPolished() {
                 </header>
 
                 <main className="flex-1 pb-20">
-                    <ul className="flex flex-col gap-3">
-                        {DUMMY_CHATS.map((chat) => (
-                            <li 
-                                key={chat.id} 
-                                onClick={() => router.push(`/chat/${chat.id}`)}
-                                className="p-4 flex items-center gap-4 bg-white rounded-2xl border border-neutral-100 hover:bg-neutral-50 active:scale-[0.98] cursor-pointer transition-all shadow-sm"
-                            >
-                                {/* 아바타 크기를 20->14로 조절 */}
-                                <div className="relative flex-shrink-0 w-14 h-14">
-                                    <div className={`h-full w-full rounded-full flex items-center justify-center text-2xl ${chat.avatarColor}`}>
-                                        <span className={chat.textColor}>{chat.avatarText}</span>
-                                    </div>
-                                    {chat.type === 'private' && chat.isOnline && (
-                                        <span className="absolute bottom-0 right-0 block h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white shadow"></span>
-                                    )}
-                                    {chat.type === 'group' && (
-                                        <div className="absolute -bottom-0.5 -right-0.5 bg-blue-600 rounded-full p-1 border-2 border-white text-white shadow">
-                                            <AiRobotBadge className="h-2.5 w-2.5" />
+                    {loading ? (
+                        <div className="text-center py-10 text-gray-400 font-bold text-sm">목록을 불러오는 중입니다...</div>
+                    ) : chatRooms.length > 0 ? (
+                        <ul className="flex flex-col gap-3">
+                            {chatRooms.map((chat) => (
+                                <li 
+                                    key={chat.id} 
+                                    onClick={() => router.push(`/chat/${chat.id}`)}
+                                    className="p-4 flex items-center gap-4 bg-white rounded-2xl border border-neutral-100 hover:bg-neutral-50 active:scale-[0.98] cursor-pointer transition-all shadow-sm"
+                                >
+                                    <div className="relative flex-shrink-0 w-14 h-14">
+                                        <div className={`h-full w-full rounded-full flex items-center justify-center text-2xl ${chat.avatarColor}`}>
+                                            <span className={chat.textColor}>{chat.avatarText}</span>
                                         </div>
-                                    )}
-                                </div>
+                                        {chat.type === 'private' && chat.isOnline && (
+                                            <span className="absolute bottom-0 right-0 block h-3.5 w-3.5 rounded-full bg-green-500 border-2 border-white shadow"></span>
+                                        )}
+                                        {chat.type === 'group' && (
+                                            <div className="absolute -bottom-0.5 -right-0.5 bg-blue-600 rounded-full p-1 border-2 border-white text-white shadow">
+                                                <AiRobotBadge className="h-2.5 w-2.5" />
+                                            </div>
+                                        )}
+                                    </div>
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <h2 className="text-base font-bold text-gray-950 truncate">
-                                                {chat.title} {chat.titleIcon}
-                                            </h2>
-                                            {chat.type === 'group' && (
-                                                <span className="text-[11px] text-gray-400 font-medium">
-                                                    {chat.memberCount}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <h2 className="text-base font-bold text-gray-950 truncate">
+                                                    {chat.title} {chat.titleIcon}
+                                                </h2>
+                                                {chat.type === 'group' && chat.memberCount > 0 && (
+                                                    <span className="text-[11px] text-gray-400 font-medium">
+                                                        {chat.memberCount}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] text-gray-400 flex-shrink-0">
+                                                {chat.time}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <p className="text-sm text-gray-500 truncate">
+                                                {chat.lastMessage}
+                                            </p>
+                                            {chat.unreadCount > 0 && (
+                                                <span className="bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 min-w-[18px] text-center">
+                                                    {chat.unreadCount}
                                                 </span>
                                             )}
                                         </div>
-                                        <span className="text-[11px] text-gray-400 flex-shrink-0">
-                                            {chat.time}
-                                        </span>
                                     </div>
-                                    <div className="flex justify-between items-center gap-2">
-                                        <p className="text-sm text-gray-500 truncate">
-                                            {chat.lastMessage}
-                                        </p>
-                                        {chat.unreadCount > 0 && (
-                                            <span className="bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 min-w-[18px] text-center">
-                                                {chat.unreadCount}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl mb-4">💬</div>
+                            <h3 className="text-gray-900 font-black text-lg mb-1">참여 중인 채팅이 없어요</h3>
+                            <p className="text-gray-400 text-sm font-medium">새로운 모임에 참여하거나 매칭을 통해<br/>대화를 시작해보세요!</p>
+                        </div>
+                    )}
                 </main>
             </div>
             <BottomNav />
