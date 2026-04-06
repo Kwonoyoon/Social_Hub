@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "ml-distance": "^4.0.1",
     "natural": "^8.1.1",
