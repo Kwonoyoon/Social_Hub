@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { supabase } from '@/app/lib/supabase';
 
-// 백엔드 서버 주소 (포트 5000)
 const socket = io("http://localhost:5000");
 
 const INITIAL_MESSAGES = [
@@ -20,9 +19,11 @@ export default function ChatRoomPolished() {
     const [messages, setMessages] = useState<any[]>([]);
     const [message, setMessage] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [participants, setParticipants] = useState<any[]>([]); // 참여자 목록 상태
+    const [participants, setParticipants] = useState<any[]>([]);
+    
+    // 💡 [추가됨] 방 제목을 담을 상태값
+    const [roomTitle, setRoomTitle] = useState('로딩 중...'); 
 
-    // 내 정보 상태 관리
     const [currentUser, setCurrentUser] = useState({
         id: '', 
         nickname: '로딩중...',
@@ -34,11 +35,10 @@ export default function ChatRoomPolished() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // 1. 내 정보(UUID) 가져오기
+    // 1. 내 정보 가져오기
     useEffect(() => {
         const fetchMyInfo = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-
             if (user) {
                 const { data: userData } = await supabase
                     .from('user')
@@ -58,17 +58,60 @@ export default function ChatRoomPolished() {
         fetchMyInfo();
     }, []);
 
-    // 2. 과거 대화 내역 DB에서 불러오기
+    // 💡 2. [추가됨] 방 타입에 맞춰 동적으로 제목 가져오기
+    useEffect(() => {
+        const fetchRoomTitle = async () => {
+            if (!roomId || !currentUser.id) return;
+
+            // 방의 타입(private/group) 확인
+            const { data: roomData } = await supabase
+                .from('chat_room')
+                .select('room_type')
+                .eq('id', roomId)
+                .single();
+
+            if (!roomData) return;
+
+            if (roomData.room_type === 'private') {
+                // 1:1 채팅방이면 상대방 닉네임 가져오기
+                const { data: opponent } = await supabase
+                    .from('chat_room_participant')
+                    .select('user_id')
+                    .eq('room_id', roomId)
+                    .neq('user_id', currentUser.id)
+                    .single();
+
+                if (opponent) {
+                    const { data: opponentUser } = await supabase
+                        .from('user')
+                        .select('nickname')
+                        .eq('id', opponent.user_id)
+                        .single();
+                    if (opponentUser) setRoomTitle(opponentUser.nickname);
+                }
+            } else {
+                // 모임방이면 meeting 테이블에서 모임 제목 가져오기
+                const { data: meetingData } = await supabase
+                    .from('meeting')
+                    .select('title')
+                    .eq('room_id', roomId)
+                    .single();
+                
+                if (meetingData) setRoomTitle(meetingData.title);
+                else setRoomTitle('모임 채팅방');
+            }
+        };
+
+        fetchRoomTitle();
+    }, [roomId, currentUser.id]);
+
+    // 3. 과거 대화 내역 DB에서 불러오기
     useEffect(() => {
         const fetchOldMessages = async () => {
             if (!roomId || !currentUser.id) return;
-
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('chat_message')
-                .select(`
-                    *,
-                    user:sender_id ( nickname )
-                `)
+                .select(`*, user:sender_id ( nickname )`)
                 .eq('room_id', roomId)
                 .order('sent_at', { ascending: true });
 
@@ -85,14 +128,12 @@ export default function ChatRoomPolished() {
                 setMessages([...INITIAL_MESSAGES, ...formattedMsgs]);
             }
         };
-
         fetchOldMessages();
     }, [roomId, currentUser.id]);
 
-    // 3. 소켓 연결 및 실시간 메시지 수신
+    // 4. 소켓 연결 및 실시간 메시지 수신
     useEffect(() => {
         if (!roomId || !currentUser.id) return;
-
         socket.emit('join_room', roomId);
 
         const handleReceive = (data: any) => {
@@ -111,13 +152,10 @@ export default function ChatRoomPolished() {
         };
 
         socket.on('receive_message', handleReceive);
-
-        return () => {
-            socket.off('receive_message', handleReceive);
-        };
+        return () => { socket.off('receive_message', handleReceive); };
     }, [roomId, currentUser.id]);
 
-    // 4. 사이드바 열릴 때 참여자 정보 가져오기
+    // 사이드바 열릴 때 참여자 정보 가져오기
     useEffect(() => {
         const fetchParticipants = async () => {
             if (!roomId) return;
@@ -135,66 +173,41 @@ export default function ChatRoomPolished() {
                 setParticipants(list);
             }
         };
-
         if (isSidebarOpen) fetchParticipants();
     }, [isSidebarOpen, roomId]);
 
-    // 메시지 수신 시 자동 스크롤
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    useEffect(() => { scrollToBottom(); }, [messages]);
 
-    // 5. 메시지 전송 로직
     const handleSendMessage = () => {
         if (!message.trim() || !currentUser.id) return;
-
         const timeNow = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 
         socket.emit('send_message', {
-            room: roomId,
-            message: message,
-            sender_id: currentUser.id,
-            sender: currentUser.nickname,
-            avatar: currentUser.avatar,
-            type: 'text',
-            time: timeNow
+            room: roomId, message: message, sender_id: currentUser.id,
+            sender: currentUser.nickname, avatar: currentUser.avatar, type: 'text', time: timeNow
         });
 
         const newMessage = {
-            id: Date.now(),
-            sender: currentUser.nickname,
-            avatar: currentUser.avatar,
-            type: 'text',
-            content: message,
-            time: timeNow,
-            isMine: true,
+            id: Date.now(), sender: currentUser.nickname, avatar: currentUser.avatar,
+            type: 'text', content: message, time: timeNow, isMine: true,
         };
-
         setMessages((prev) => [...prev, newMessage]);
         setMessage('');
     };
 
-    // 6. 채팅방 나가기 로직
     const handleLeaveChat = async () => {
         if (!confirm("정말 채팅방을 나가시겠습니까?\n나간 채팅방은 목록에서 삭제됩니다.")) return;
-
         try {
             const res = await fetch(`http://localhost:5000/api/chat/leave`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: currentUser.id,
-                    roomId: roomId
-                })
+                body: JSON.stringify({ userId: currentUser.id, roomId: roomId })
             });
-
             const data = await res.json();
             if (data.success) {
                 alert("성공적으로 나갔습니다.");
-                router.push('/chat'); // 리스트 페이지로 이동
-            } else {
-                alert("나가기 처리에 실패했습니다.");
-            }
+                router.push('/chat');
+            } else alert("나가기 처리에 실패했습니다.");
         } catch (err) {
             console.error(err);
             alert("서버 통신 중 오류가 발생했습니다.");
@@ -206,7 +219,6 @@ export default function ChatRoomPolished() {
             <div className="flex-1 w-full max-w-[1440px] mx-auto p-4 lg:p-12 h-full min-h-0 flex flex-col">
                 <div className="flex-1 bg-white rounded-3xl border border-neutral-200 shadow-lg flex flex-col relative overflow-hidden min-h-0">
                     
-                    {/* 상단 헤더 */}
                     <header className="flex-shrink-0 flex items-center justify-between px-6 lg:px-8 py-5 border-b border-neutral-100 bg-white z-20">
                         <div className="flex items-center gap-4">
                             <button onClick={() => router.push('/chat')} className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
@@ -215,8 +227,9 @@ export default function ChatRoomPolished() {
                                 </svg>
                             </button>
                             <div>
+                                {/* 💡 [수정됨] 하드코딩된 이름 대신 동적으로 가져온 roomTitle 렌더링 */}
                                 <h1 className="text-xl lg:text-2xl font-bold text-gray-950 flex items-center gap-2">
-                                    KNOCK KNOCK 채팅방 <span className="text-blue-600">💬</span>
+                                    {roomTitle} <span className="text-blue-600">💬</span>
                                 </h1>
                                 <p className="text-sm lg:text-base text-gray-500 flex items-center gap-1.5 mt-0.5">
                                     {currentUser.nickname}님으로 접속 중
@@ -230,7 +243,6 @@ export default function ChatRoomPolished() {
                         </button>
                     </header>
 
-                    {/* 채팅 메시지 영역 */}
                     <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 bg-white no-scrollbar">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex items-start gap-4 lg:gap-5 ${msg.isMine ? 'justify-end' : ''}`}>
@@ -251,7 +263,6 @@ export default function ChatRoomPolished() {
                         <div ref={messagesEndRef} />
                     </main>
 
-                    {/* 하단 입력창 */}
                     <footer className="flex-shrink-0 border-t border-neutral-100 bg-white px-6 py-4 lg:px-8 lg:py-6 z-20">
                         <div className="flex items-center gap-3">
                             <button className="w-12 h-12 lg:w-14 lg:h-14 flex-shrink-0 border-[2.5px] border-gray-800 rounded-[14px] lg:rounded-2xl flex items-center justify-center text-gray-800 hover:bg-gray-100 transition-colors">
@@ -279,7 +290,6 @@ export default function ChatRoomPolished() {
                 </div>
             </div>
 
-            {/* --- 우측 사이드바 UI --- */}
             {isSidebarOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-end animate-in fade-in duration-300">
                     <div 
@@ -290,9 +300,7 @@ export default function ChatRoomPolished() {
                     <div className="relative w-[320px] h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
                         <header className="px-6 py-6 border-b border-neutral-100 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-gray-900">채팅방 정보</h2>
-                            <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-neutral-50 rounded-full text-gray-400">
-                                ✕
-                            </button>
+                            <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-neutral-50 rounded-full text-gray-400">✕</button>
                         </header>
 
                         <div className="flex-1 overflow-y-auto p-6">
@@ -323,7 +331,7 @@ export default function ChatRoomPolished() {
                                 채팅방 초대하기
                             </button>
                             <button 
-                                onClick={handleLeaveChat} // 👈 나가기 API 연결
+                                onClick={handleLeaveChat} 
                                 className="w-full py-4 text-red-500 hover:bg-red-50 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
