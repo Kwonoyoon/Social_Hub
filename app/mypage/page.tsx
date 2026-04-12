@@ -1,161 +1,214 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/app/lib/supabase'; // 절대 경로 사용 추천!
-import BottomNav from "../components/BottomNav"; // 하단바 불러오기
+import { supabase } from '@/app/lib/supabase';
+import BottomNav from "../components/BottomNav";
 
-export default function MyPage() {
-    const router = useRouter();
-    const [loading, setLoading] = useState(true);
-    
-    // 💡 여러 개를 담기 위해 초기값을 빈 배열([])로 변경했습니다.
-    const [userData, setUserData] = useState({
-        nickname: "사용자",
-        userId: "@user",
-        bio: "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
-        movie: [] as string[],
-        music: [] as string[],
-        hobby: [] as string[],
-        mbti: [] as string[]
-    });
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                setLoading(true);
-                const { data: { session }, error: authError } = await supabase.auth.getSession();
-
-                if (authError || !session) {
-                    router.push('/onboarding'); 
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from('user')
-                    .select('*') 
-                    .eq('id', session.user.id);
-
-                if (error) {
-                    console.error("조회 중 문제 발생:", error.message);
-                }
-
-                if (data && data.length > 0) {
-                    const profile = data[0];
-                    // 💡 DB에서 온 데이터가 혹시 배열이 아니더라도 에러가 나지 않도록 배열로 감싸주는 방어 코드 추가
-                    setUserData({
-                        nickname: profile.nickname || "오윤",
-                        userId: `@${profile.nickname || "user"}`,
-                        bio: profile.bio || "체험형 기반 소셜 허브 '낙낙' 개발 중🚀",
-                        movie: Array.isArray(profile.movie) ? profile.movie : (profile.movie ? [profile.movie] : []),
-                        music: Array.isArray(profile.music) ? profile.music : (profile.music ? [profile.music] : []),
-                        hobby: Array.isArray(profile.hobby) ? profile.hobby : (profile.hobby ? [profile.hobby] : []),
-                        mbti: Array.isArray(profile.mbti) ? profile.mbti : (profile.mbti ? [profile.mbti] : [])
-                    });
-                }
-            } catch (err) {
-                console.error("Unexpected error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProfile();
-    }, [router]);
-
-    const handleLogout = async () => {
-        if (confirm("로그아웃 하시겠습니까?")) {
-            await supabase.auth.signOut();
-            router.push('/onboarding'); 
-        }
-    };
-
-    if (loading) return (
-        <div className="bg-[#f5f7fb] min-h-screen flex items-center justify-center text-blue-600 font-black">
-            데이터를 불러오는 중입니다... 👋
-        </div>
-    );
-
+// --- 1. 공통 컴포넌트: 회색 기본 프로필 아이콘 ---
+function DefaultProfileIcon({ size = "medium" }: { size?: "small" | "medium" }) {
+    const isSmall = size === "small";
     return (
-        <div className="bg-[#f5f7fb] min-h-screen flex flex-col">
-            <header className="flex justify-between items-center px-8 py-5 bg-white sticky top-0 z-50 shadow-sm">
-                <Link href="/" className="logo font-black text-xl text-blue-600 tracking-tighter italic">
-                    KNOCK KNOCK <span className="text-blue-500">👋</span>
-                </Link>
-                <div className="flex gap-5 text-gray-300 items-center">
-                    <span className="cursor-pointer hover:text-blue-500 transition-colors">🔔</span>
-                    <span className="cursor-pointer hover:text-blue-500 transition-colors" onClick={() => router.push('/onboarding?mode=edit')}>⚙️</span>
-                </div>
-            </header>
-
-            {/* 하단바 때문에 가려지지 않게 pb-32 추가 */}
-            <main className="container max-w-lg mx-auto p-6 space-y-6 mt-4 pb-32">
-                <section className="bg-white p-10 rounded-[35px] shadow-sm border border-gray-50 text-center">
-                    <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl border border-gray-50 shadow-inner">😵‍💫</div>
-                    <h2 className="text-3xl font-black text-gray-900 leading-tight">{userData.nickname}</h2>
-                    <p className="text-gray-400 text-sm font-medium mt-1">{userData.userId}</p>
-                    <p className="text-gray-500 font-bold text-[13px] mt-4 px-4 leading-relaxed tracking-tight">{userData.bio}</p>
-                </section>
-
-                <section className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50">
-                    <div className="flex justify-between items-end mb-7 px-1">
-                        <div>
-                            <h3 className="text-xl font-black text-gray-900">나의 취향 키워드</h3>
-                            <p className="text-gray-400 text-[11px] font-bold mt-1.5">온보딩에서 선택한 나의 관심사에요</p>
-                        </div>
-                        <button onClick={() => router.push('/onboarding?mode=edit')} className="text-[13px] font-black text-blue-600 hover:underline">수정하기</button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                        <TasteCard emoji="🎬" title="Movie" value={userData.movie} color="purple" />
-                        <TasteCard emoji="🎵" title="Music" value={userData.music} color="blue" />
-                        <TasteCard emoji="✨" title="Hobby" value={userData.hobby} color="pink" />
-                        <TasteCard emoji="🧠" title="Style" value={userData.mbti} color="indigo" />
-                    </div>
-                </section>
-
-                <section className="bg-white rounded-[35px] shadow-sm border border-gray-50 overflow-hidden">
-                    <div onClick={handleLogout} className="p-6 text-center hover:bg-red-50 cursor-pointer transition-all group">
-                        <span className="text-[13px] font-black text-red-300 group-hover:text-red-500 transition-colors">로그아웃</span>
-                    </div>
-                </section>
-            </main>
-
-            {/* 하단바 고정 */}
-            <BottomNav />
+        <div className={`${isSmall ? 'w-12 h-12' : 'w-24 h-24'} rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden`}>
+            <div className="flex flex-col items-center justify-center text-[#94a3b8]">
+                <div className={`${isSmall ? 'w-2.5 h-2.5 border-[1.5px]' : 'w-5 h-5 border-[2.5px]'} rounded-full border-current mb-0.5`}></div>
+                <div className={`${isSmall ? 'w-4 h-2 border-[1.5px]' : 'w-8 h-4 border-[2.5px]'} rounded-t-full border-t-current border-x-current border-b-0 border-current`}></div>
+            </div>
         </div>
     );
 }
 
-// 💡 TasteCard의 value 타입을 배열(string[])로 변경했습니다.
+// --- 2. 보조 컴포넌트 ---
 function TasteCard({ emoji, title, value, color }: { emoji: string, title: string, value: string[], color: string }) {
-    const colorMap: any = {
-        purple: "text-purple-600 bg-purple-50",
-        blue: "text-blue-600 bg-blue-50",
-        pink: "text-pink-600 bg-pink-50",
-        indigo: "text-indigo-600 bg-indigo-50",
+    const colorMap: any = { 
+        purple: "text-purple-600 bg-purple-50", 
+        blue: "text-blue-600 bg-blue-50", 
+        pink: "text-pink-600 bg-pink-50", 
+        indigo: "text-indigo-600 bg-indigo-50" 
     };
-    
     return (
-        <div className="bg-[#FBFBFF] rounded-[24px] p-5 flex flex-col gap-3 border border-gray-50/50">
+        <div className="bg-[#FBFBFF] rounded-[30px] p-6 flex flex-col gap-4 border border-gray-50">
             <div className="flex items-center gap-2 text-gray-400">
-                <span className="text-sm">{emoji}</span>
-                <span className="text-[10px] font-black uppercase tracking-tighter">{title}</span>
+                <span className="text-base">{emoji}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{title}</span>
             </div>
-            
-            {/* 💡 배열 데이터를 map으로 순회하며 각각의 태그를 만들어냅니다. flex-wrap으로 자동 줄바꿈 처리! */}
-            <div className="flex flex-wrap gap-1.5">
-                {value && value.length > 0 ? (
-                    value.map((item, index) => (
-                        <span key={index} className={`text-[12px] font-black ${colorMap[color]} px-2.5 py-1.5 rounded-xl inline-block shadow-sm`}>
-                            {item}
-                        </span>
-                    ))
-                ) : (
-                    <span className="text-[12px] font-bold text-gray-400 px-1 py-1.5">미선택</span>
+            <div className="flex flex-wrap gap-2">
+                {value && value.length > 0 ? value.map((v: string, i: number) => (
+                    <span key={i} className={`text-[12px] font-black ${colorMap[color]} px-3 py-2 rounded-2xl`}>{v}</span>
+                )) : <span className="text-[12px] font-bold text-gray-300">미선택</span>}
+            </div>
+        </div>
+    );
+}
+
+function MenuListItem({ icon, title, onClick }: { icon: string, title: string, onClick?: () => void }) {
+    return (
+        <div onClick={onClick} className="flex items-center justify-between p-6 hover:bg-gray-50 cursor-pointer transition-colors group">
+            <div className="flex items-center gap-4">
+                <span className="text-lg">{icon}</span>
+                <span className="text-sm font-black text-gray-700">{title}</span>
+            </div>
+            <svg className="w-5 h-5 text-gray-300 group-hover:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+        </div>
+    );
+}
+
+export default function MyPage() {
+    const router = useRouter();
+    const [userData, setUserData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editBio, setEditBio] = useState("");
+    const [viewMode, setViewMode] = useState<"none" | "FOLLOWING" | "FOLLOWER">("none");
+    const [followList, setFollowList] = useState<any[]>([]);
+    const [counts, setCounts] = useState({ follower: 0, following: 0 });
+
+    const fetchProfileData = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return router.push('/');
+
+        const { data: user } = await supabase.from('user').select('*').eq('id', session.user.id).single();
+        const { count: f1 } = await supabase.from('follow').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id);
+        const { count: f2 } = await supabase.from('follow').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id);
+
+        if (user) {
+            setUserData(user);
+            setEditBio(user.bio || "");
+            setCounts({ follower: f1 || 0, following: f2 || 0 });
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchProfileData(); }, [router]);
+
+    // 💡 400 에러 원천 차단: 관계 조인 없이 수동 패칭
+    const handleShowList = async (mode: "FOLLOWING" | "FOLLOWER") => {
+        setViewMode(mode);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        try {
+            let ids: string[] = [];
+            if (mode === "FOLLOWING") {
+                const { data } = await supabase.from('follow').select('following_id').eq('follower_id', session.user.id);
+                ids = data?.map(d => d.following_id) || [];
+            } else {
+                const { data } = await supabase.from('follow').select('follower_id').eq('following_id', session.user.id);
+                ids = data?.map(d => d.follower_id) || [];
+            }
+
+            if (ids.length > 0) {
+                const { data: users, error } = await supabase.from('user').select('id, nickname, bio').in('id', ids);
+                if (error) throw error;
+                setFollowList(users || []);
+            } else {
+                setFollowList([]);
+            }
+        } catch (e) {
+            console.error(e);
+            setFollowList([]);
+        }
+    };
+
+    if (loading) return <div className="h-screen flex items-center justify-center font-black text-blue-600 italic uppercase">KNOCK KNOCK... 👋</div>;
+
+    return (
+        <div className="bg-[#f5f7fb] min-h-screen pb-32">
+            <header className="px-8 py-5 bg-white shadow-sm border-b border-gray-50">
+                <h1 className="font-black text-xl text-blue-600 italic tracking-tighter uppercase text-left">KNOCK KNOCK</h1>
+            </header>
+
+            <main className="max-w-lg mx-auto p-6 space-y-6">
+                <section className="bg-white p-10 rounded-[45px] shadow-sm text-center relative">
+                    {!isEditing ? (
+                        <>
+                            <button onClick={() => setIsEditing(true)} className="absolute top-8 right-8 text-blue-600 font-black text-[11px] italic uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">EDIT</button>
+                            <div className="mb-6 flex justify-center"><DefaultProfileIcon /></div>
+                            <h2 className="text-3xl font-black text-gray-900 mb-1">{userData.nickname}</h2>
+                            <p className="text-blue-500 font-bold mb-6 italic text-sm tracking-tight">@{userData.nickname}</p>
+
+                            <div className="flex justify-center gap-8 mb-8 font-black uppercase tracking-tighter">
+                                <div className="cursor-pointer" onClick={() => handleShowList('FOLLOWER')}>
+                                    <p className="text-[10px] text-gray-300 mb-1 tracking-widest">Follower</p>
+                                    <p className="text-xl text-gray-800">{counts.follower}</p>
+                                </div>
+                                <div className="w-[1px] h-8 bg-gray-100 self-center"></div>
+                                <div className="cursor-pointer" onClick={() => handleShowList('FOLLOWING')}>
+                                    <p className="text-[10px] text-gray-300 mb-1 tracking-widest">Following</p>
+                                    <p className="text-xl text-gray-800">{counts.following}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-50 text-gray-600 font-bold text-sm italic">
+                                "{userData.bio || "반가워요!"}"
+                            </div>
+                        </>
+                    ) : (
+                        <div className="space-y-4">
+                            <h3 className="font-black text-blue-600 italic text-sm mb-2 text-left ml-2 uppercase tracking-widest">Profile Edit</h3>
+                            <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold h-24 resize-none" />
+                            <div className="flex gap-2">
+                                <button onClick={() => setIsEditing(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-black text-sm text-gray-400">CANCEL</button>
+                                <button onClick={async () => {
+                                    await supabase.from('user').update({ bio: editBio }).eq('id', userData.id);
+                                    setIsEditing(false);
+                                    fetchProfileData();
+                                }} className="flex-1 py-4 bg-blue-600 rounded-2xl font-black text-sm text-white">SAVE</button>
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {!isEditing && (
+                    <>
+                        <section className="bg-white p-9 rounded-[45px] shadow-sm border border-white">
+                            <div className="flex justify-between items-center mb-8 px-1">
+                                <h3 className="text-xl font-black text-gray-900 tracking-tight">나의 취향 키워드</h3>
+                                <button onClick={() => router.push('/onboarding?mode=edit')} className="text-[13px] font-black text-blue-600">편집 ✏️</button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <TasteCard emoji="🎬" title="Movie" value={userData.movie || []} color="purple" />
+                                <TasteCard emoji="🎵" title="Music" value={userData.music || []} color="blue" />
+                                <TasteCard emoji="✨" title="Hobby" value={userData.hobby || []} color="pink" />
+                                <TasteCard emoji="🧠" title="MBTI" value={[userData.mbti]} color="indigo" />
+                            </div>
+                        </section>
+
+                        <section className="bg-white rounded-[45px] shadow-sm border border-gray-50 overflow-hidden divide-y divide-gray-50">
+                            <MenuListItem icon="👥" title="팔로워 / 팔로잉 리스트 확인" onClick={() => handleShowList('FOLLOWING')} />
+                            <MenuListItem icon="⚙️" title="앱 설정 및 알림 관리" />
+                        </section>
+                    </>
                 )}
-            </div>
+            </main>
+
+            {/* 목록 모달 */}
+            {viewMode !== "none" && (
+                <div className="fixed inset-0 bg-black/40 z-[100] flex items-end animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-lg mx-auto rounded-t-[45px] p-8 h-[75vh] flex flex-col shadow-2xl">
+                        <div className="flex justify-between items-center mb-8 px-2">
+                            <h3 className="text-2xl font-black text-blue-600 uppercase italic tracking-tighter">{viewMode}</h3>
+                            <button onClick={() => setViewMode("none")} className="text-gray-300 hover:text-gray-900 text-3xl font-bold">×</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-4 px-2 pb-10">
+                            {followList.length === 0 ? (
+                                <p className="text-center text-gray-300 font-bold py-20 italic">비어있는 리스트입니다.</p>
+                            ) : (
+                                followList.map((u) => (
+                                    <div key={u.id} onClick={() => router.push(`/profile/${u.id}`)} className="flex items-center gap-5 p-5 bg-gray-50 rounded-[30px] border border-white shadow-sm cursor-pointer hover:bg-white transition-all">
+                                        <DefaultProfileIcon size="small" />
+                                        <div className="flex-1 overflow-hidden text-left">
+                                            <p className="font-black text-gray-800 text-base truncate">{u.nickname}</p>
+                                            <p className="text-[11px] text-gray-400 font-bold truncate italic">"{u.bio || "Hello!"}"</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            <BottomNav />
         </div>
     );
 }
