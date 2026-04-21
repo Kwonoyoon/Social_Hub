@@ -18,7 +18,6 @@ const mbtis = [
   "ESTP", "ISTP", "ESTJ", "ISTJ"
 ];
 
-// 기본 캐릭터 이미지 경로 (공용 폴더 public/avatars/ 안에 넣어두세요)
 const defaultAvatars = [
   "/avatars/char1.png",
   "/avatars/char2.png",
@@ -43,8 +42,8 @@ export default function OnboardingPage() {
     pw: "",
     nickname: "",
     university: "", 
-    bio: "", // 한줄 소개 추가
-    profile_url: "", // 프로필 이미지 URL
+    bio: "",
+    profile_url: "",
     movie: [] as string[],
     music: [] as string[],
     hobby: [] as string[],
@@ -55,7 +54,14 @@ export default function OnboardingPage() {
     if (isEditMode) setCurrentStep(1);
   }, [isEditMode]);
 
-  // 이미지 업로드 핸들러
+  // 닉네임 변경 핸들러 (4글자 제한)
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length <= 4) {
+      setOnboardingData({ ...onboardingData, nickname: value });
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -192,7 +198,14 @@ export default function OnboardingPage() {
                 <>
                   <div>
                     <label className="text-sm font-black text-gray-700 mb-2 block">닉네임 *</label>
-                    <input type="text" value={onboardingData.nickname} onChange={(e) => setOnboardingData({...onboardingData, nickname: e.target.value})} placeholder="다른 사용자에게 보여질 이름" className="w-full p-5 bg-gray-50 rounded-3xl border-2 border-gray-50 focus:border-blue-500 focus:bg-white outline-none transition-all font-medium" />
+                    <input 
+                      type="text" 
+                      value={onboardingData.nickname} 
+                      onChange={handleNicknameChange} 
+                      maxLength={4}
+                      placeholder="다른 사용자에게 보여질 이름" 
+                      className="w-full p-5 bg-gray-50 rounded-3xl border-2 border-gray-50 focus:border-blue-500 focus:bg-white outline-none transition-all font-medium" 
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-black text-gray-700 mb-2 block">대학교</label>
