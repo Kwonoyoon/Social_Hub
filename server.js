@@ -7,9 +7,12 @@ const supabase = require('./supabase');
 const matcher = require('./match');
 
 const app = express();
-const PORT = 5000;
+
+// [수정 1] Railway는 process.env.PORT를 통해 포트를 주입하므로 이를 따르도록 수정
+const PORT = process.env.PORT || 5000;
 
 // 1. 미들웨어 설정
+// [수정 2] 배포 환경에서 프론트엔드와 원활하게 통신하기 위해 origin을 유연하게 설정
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
 
@@ -18,7 +21,8 @@ const server = http.createServer(app);
 // 2. Socket.io 설정 (실시간 채팅용)
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        // [수정 3] 배포 후 프론트엔드 URL(Vercel 등)이 확정되면 "*" 대신 해당 주소를 넣으세요.
+        origin: "*", 
         methods: ["GET", "POST"]
     }
 });
@@ -39,7 +43,6 @@ app.get('/api/match', async (req, res) => {
         const { data: allUsers, error } = await supabase.from('user').select('*');
         if (error) throw error;
 
-        // 취향 데이터 배열 강제 변환 (에러 방지)
         const safeUsers = allUsers.map(u => ({
             ...u,
             movie: Array.isArray(u.movie) ? u.movie : (u.movie ? [u.movie] : []),
@@ -96,14 +99,13 @@ app.post('/api/match/action', async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// [기능 2: 내 채팅방 목록 가져오기 API (모임방 + 1:1 완벽 호환!)]
+// [기능 2: 내 채팅방 목록 가져오기 API]
 // ---------------------------------------------------------
 
 app.get('/api/chat/list', async (req, res) => {
     const { userId } = req.query;
 
     try {
-        // 1. 1:1 채팅방(chat_room_participant)에서 내 방 찾기
         const { data: partRooms, error: partError } = await supabase
             .from('chat_room_participant')
             .select('room_id')
@@ -112,7 +114,6 @@ app.get('/api/chat/list', async (req, res) => {
         if (partError) throw partError;
         let roomIds = partRooms ? partRooms.map(r => r.room_id) : [];
 
-        // 2. 모임방(meeting_participant)에서도 내 방 찾기
         const { data: meetParts } = await supabase
             .from('meeting_participant')
             .select('meeting_id')
@@ -127,15 +128,14 @@ app.get('/api/chat/list', async (req, res) => {
 
             if (meetings) {
                 const meetRoomIds = meetings.map(m => m.room_id).filter(id => id !== null);
-                roomIds = [...roomIds, ...meetRoomIds]; // 1:1 방과 모임방 합치기!
+                roomIds = [...roomIds, ...meetRoomIds]; 
             }
         }
 
-        roomIds = [...new Set(roomIds)]; // 중복 제거
+        roomIds = [...new Set(roomIds)]; 
 
         if (roomIds.length === 0) return res.json([]);
 
-        // 3. 해당 방들의 상세 정보 가져오기 (최신 메시지 순 정렬)
         const { data: roomsInfo, error: infoError } = await supabase
             .from('chat_room')
             .select('*')
@@ -144,7 +144,6 @@ app.get('/api/chat/list', async (req, res) => {
 
         if (infoError) throw infoError;
 
-        // 4. 각 방별로 상대방 정보 또는 모임 정보 합치기
         const chatList = await Promise.all(roomsInfo.map(async (room) => {
             if (room.room_type === 'private') {
                 const { data: otherPart } = await supabase
@@ -206,6 +205,33 @@ app.get('/api/chat/list', async (req, res) => {
         res.status(500).json({ error: "목록 로드 실패" });
     }
 });
+app.get('/api/meetings/:meetingId/participants', async (req, res) => {
+    const { meetingId } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('meeting_participant')
+            .select(`
+                user_id,
+                role,
+                user:user_id ( nickname )
+            `) // user_id를 키로 user 테이블의 nickname을 조인해서 가져옴
+            .eq('meeting_id', meetingId);
+
+        if (error) throw error;
+
+        // 프론트엔드에서 쓰기 편하게 데이터 구조를 정리해서 보냄
+        const participants = data.map(p => ({
+            user_id: p.user_id,
+            role: p.role,
+            nickname: p.user?.nickname || '알 수 없음'
+        }));
+
+        res.json(participants);
+    } catch (err) {
+        console.error("참여자 조회 중 서버 에러:", err);
+        res.status(500).json({ error: "서버 에러가 발생했습니다." });
+    }
+});
 
 // ---------------------------------------------------------
 // [기능 3: 채팅방 나가기 API]
@@ -214,10 +240,7 @@ app.get('/api/chat/list', async (req, res) => {
 app.post('/api/chat/leave', async (req, res) => {
     const { userId, roomId } = req.body;
     try {
-        // 1. 개인 채팅/참가 정보 삭제
         await supabase.from('chat_room_participant').delete().eq('room_id', roomId).eq('user_id', userId);
-        
-        // 2. 모임방일 경우 모임 참가 정보도 삭제
         const { data: meet } = await supabase.from('meeting').select('meeting_id').eq('room_id', roomId).single();
         if (meet) {
             await supabase.from('meeting_participant').delete().eq('meeting_id', meet.meeting_id).eq('user_id', userId);
@@ -243,7 +266,6 @@ io.on('connection', (socket) => {
 
     socket.on('send_message', async (data) => {
         try {
-            // DB에 메시지 저장
             const { error: msgError } = await supabase
                 .from('chat_message')
                 .insert([
@@ -256,7 +278,6 @@ io.on('connection', (socket) => {
 
             if (msgError) console.error("❌ DB 저장 실패:", msgError.message);
 
-            // 채팅방(chat_room)의 마지막 메시지 업데이트
             await supabase
                 .from('chat_room')
                 .update({ 
@@ -265,7 +286,6 @@ io.on('connection', (socket) => {
                 })
                 .eq('id', data.room);
 
-            // 상대방에게 실시간 전달
             socket.to(data.room).emit('receive_message', data);
         } catch (err) {
             console.error("서버 에러:", err);
@@ -277,6 +297,7 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(PORT, () => {
+// [수정 4] "0.0.0.0" 호스트를 추가하여 클라우드 환경 접속 허용
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 매칭 & 채팅 통합 서버가 포트 ${PORT}에서 활기차게 돌아가는 중!`);
 });
