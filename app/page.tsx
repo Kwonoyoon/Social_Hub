@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase"; 
+import { socket } from "@/app/lib/socket"; // ✅ 실시간 알림용
 import BottomNav from "./components/BottomNav";
 import { Search, Bell, User } from "lucide-react"; 
 
 export default function MainPage() {
     const [userData, setUserData] = useState({ nickname: "로딩 중...", movie: "", music: "", hobby: "" });
+    const [unreadCount, setUnreadCount] = useState(0); // ✅ 알람 개수 상태
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -18,24 +20,33 @@ export default function MainPage() {
                 if (!session) { router.push("/onboarding"); return; }
                 const { data: profile } = await supabase.from("user").select("*").eq("id", session.user.id).maybeSingle();
                 if (profile) setUserData(profile);
+
+                // ✅ 초기 안읽은 알람 개수 로드
+                const { count } = await supabase
+                    .from("notifications")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", session.user.id)
+                    .eq("is_read", false);
+                setUnreadCount(count || 0);
             } finally {
                 setLoading(false);
             }
         }
         loadData();
+
+        // ✅ 실시간 알람 리스너 (콘솔에 뜨는 '수신 대기 중' 상태에서 신호를 받음)
+        socket.on('receive_notification', () => {
+            setUnreadCount(prev => prev + 1);
+        });
+
+        return () => { socket.off('receive_notification'); };
     }, [router]);
 
-    // 💡 카테고리 클릭 시 영문 경로로 매핑하여 이동
     const handleCategoryClick = (categoryName: string) => {
         const categoryMap: { [key: string]: string } = {
-            "영화": "movie",
-            "음악": "music",
-            "여행": "travel",
-            "게임": "game"
+            "영화": "movie", "음악": "music", "여행": "travel", "게임": "game"
         };
-
         const target = categoryMap[categoryName] || "game";
-        // UnifiedCategoryPage가 위치한 /meeting/[category] 경로로 이동합니다.
         router.push(`/meeting/${target}`);
     };
 
@@ -50,7 +61,21 @@ export default function MainPage() {
                     </h1>
                     <div className="flex items-center gap-5 text-gray-400">
                         <Search size={20} strokeWidth={2.5} className="cursor-pointer hover:text-blue-600" />
-                        <Bell size={20} strokeWidth={2.5} className="cursor-pointer hover:text-blue-600" />
+                        
+                        {/* 🔔 알람 아이콘: 클릭 영역 확보 및 z-index 설정 */}
+                        <div 
+                            className="relative cursor-pointer p-1" 
+                            style={{ zIndex: 110 }} 
+                            onClick={() => router.push('/notifications')}
+                        >
+                            <Bell size={20} strokeWidth={2.5} className="hover:text-blue-600 transition-colors" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-bold border-2 border-white">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </div>
+
                         <button onClick={() => router.push('/mypage')} className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">
                             <User size={18} strokeWidth={2.5} />
                         </button>
