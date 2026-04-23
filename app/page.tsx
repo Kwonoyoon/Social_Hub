@@ -21,6 +21,9 @@ export default function MainPage() {
                 const { data: profile } = await supabase.from("user").select("*").eq("id", session.user.id).maybeSingle();
                 if (profile) setUserData(profile);
 
+                // ✅ 1. 내 ID로 된 소켓 방에 입장 (알람 수신을 위한 우체통 개설)
+                socket.emit('join_room', session.user.id);
+
                 // ✅ 초기 안읽은 알람 개수 로드
                 const { count } = await supabase
                     .from("notifications")
@@ -34,12 +37,20 @@ export default function MainPage() {
         }
         loadData();
 
-        // ✅ 실시간 알람 리스너 (콘솔에 뜨는 '수신 대기 중' 상태에서 신호를 받음)
-        socket.on('receive_notification', () => {
+        // ✅ 3. 알람/메시지 왔을 때 빨간 점 띄우는 함수
+        const handleNotification = () => {
             setUnreadCount(prev => prev + 1);
-        });
+        };
 
-        return () => { socket.off('receive_notification'); };
+        // ✅ 4. 두 종류의 신호를 모두 감시
+        socket.on('receive_notification', handleNotification);
+        socket.on('receive_message', handleNotification);
+
+        return () => { 
+            // ✅ 5. 페이지 나갈 때 감시 중단
+            socket.off('receive_notification', handleNotification);
+            socket.off('receive_message', handleNotification);
+        };
     }, [router]);
 
     const handleCategoryClick = (categoryName: string) => {
@@ -70,10 +81,10 @@ export default function MainPage() {
                         >
                             <Bell size={20} strokeWidth={2.5} className="hover:text-blue-600 transition-colors" />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] w-4 h-4 flex items-center justify-center rounded-full font-bold border-2 border-white">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
+                        /* 숫자를 빼고 크기를 줄인 순수 '빨간 점' */
+                                <span className="absolute top-0 right-0 bg-red-500 w-2.5 h-2.5 rounded-full border-2 border-white animate-pulse" />
                             )}
+                            
                         </div>
 
                         <button onClick={() => router.push('/mypage')} className="w-9 h-9 bg-gray-50 rounded-full flex items-center justify-center border border-gray-100">

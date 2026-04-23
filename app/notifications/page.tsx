@@ -53,7 +53,7 @@ export default function NotificationsPage() {
     return (
         <div className="bg-[#f5f7fb] min-h-screen p-6 font-sans">
             <header className="flex items-center gap-4 mb-8">
-                <Link href="/mypage" className="text-gray-400 text-xl">←</Link>
+                <Link href="/" className="text-gray-400 text-xl">←</Link>
                 <h1 className="text-2xl font-black italic text-blue-600 tracking-tighter">ALERTS 🔔</h1>
             </header>
 

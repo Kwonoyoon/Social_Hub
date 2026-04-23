@@ -2,17 +2,17 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { io } from 'socket.io-client';
+//import { io } from 'socket.io-client';
+import { socket } from "@/app/lib/socket";
 import { supabase } from '@/app/lib/supabase';
 
 // Railway 혹은 로컬 소켓 서버 주소
-const socket = io("http://localhost:5000");
+//const socket = io("http://localhost:5000");
 
 export default function ChatRoomPage() {
     const router = useRouter();
     const params = useParams();
     const roomId = params?.id as string;
-
     const [messages, setMessages] = useState<any[]>([]);
     const [message, setMessage] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -135,17 +135,65 @@ export default function ChatRoomPage() {
     useEffect(() => { scrollToBottom(); }, [messages]);
 
     // 4. 메시지 전송
-    const handleSendMessage = () => {
+    const handleSendMessage = async() => {
+
+        console.log("✅ 버튼 클릭됨!");
+    console.log("현재 입력값:", message);
+    console.log("현재 유저ID:", currentUser?.id);
+
+    // 🔍 2단계: 여기서 튕기는지 확인
+    if (!message.trim() || !currentUser?.id) {
+        console.log("❌ 조건 미달로 중단됨 (메시지가 없거나 유저ID가 없음)");
+        return;
+    }
+    
         if (!message.trim() || !currentUser.id) return;
+
+        // 참여자 목록에서 내가 아닌 상대방의 ID를 찾습니다.
+        // p.user?.id 가 있으면 그걸 쓰고, 없으면 p.user_id를 씁니다.
+        const opponent = participants.find(p => (p.user?.id || p.user_id) !== currentUser.id);
+        const opponentId = opponent?.user?.id || opponent?.user_id;
         const timeNow = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 
+        // 소켓저송
         socket.emit('send_message', { 
-            room: roomId, message, sender_id: currentUser.id, sender: currentUser.nickname, time: timeNow 
+            room: roomId, 
+            message, 
+            sender_id: currentUser.id, 
+            sender: currentUser.nickname, 
+            time: timeNow,
+            receiver_id: opponentId 
         });
 
+        console.log("상대방 ID 확인:", opponentId); // 브라우저 콘솔(F12)에 뭐라고 찍히나요?
+        if (opponentId) 
+
+        //DB에 알림 기록 저장
+        if (opponentId) {
+            const { error } = await supabase
+                .from("notifications")
+                .insert([
+                    { 
+                        user_id: opponentId,      // 받는 사람 (상대방)
+                        sender_id: currentUser.id, // 보낸 사람 (나)
+                        content: `${currentUser.nickname}님으로부터 메시지가 도착했습니다.`,
+                        is_read: false,
+                        type: "chat" 
+                    }
+                ]);
+            
+            if (error) console.error("알람 저장 실패:", error);
+        }
+
+        // 3. 내 화면에 메시지 표시
         setMessages((prev) => [...prev, {
-            id: Date.now(), sender: currentUser.nickname, content: message, time: timeNow, isMine: true,
+            id: Date.now(), 
+            sender: currentUser.nickname, 
+            content: message, 
+            time: timeNow, 
+            isMine: true,
         }]);
+
         setMessage('');
     };
 

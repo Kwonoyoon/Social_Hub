@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from '@/app/lib/supabase';
+import { socket } from "@/app/lib/socket";
 
 interface LikeUser {
     userId: string;
@@ -68,6 +69,17 @@ export default function MatchPage() {
             });
 
             const data = await res.json();
+            
+            if (action === 'like' && res.ok) {
+                socket.emit('send_message', {
+                    room: 'alarm_room',        // 알람 중계용 임시 룸
+                    sender_id: myUuid,         // 내 ID
+                    receiver_id: targetUser.userId, // 상대방 ID (종 모양 주인)
+                    message: 'like'            // 알람 타입
+                });
+                console.log(`🔔 ${targetUser.nickname}님에게 실시간 알람 발송!`);
+            }
+
             if (action === 'like' && data.roomId) {
                 router.push(`/chat/${data.roomId}`);
             } else {
