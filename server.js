@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { requestVerification, verifyCode } = require('./mail');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -18,6 +19,31 @@ const io = new Server(server, {
     cors: {
         origin: "*", 
         methods: ["GET", "POST"]
+    }
+});
+
+// [대학생 인증 API] - server.js의 28번 라인 근처
+app.post('/api/auth/univ-request', async (req, res) => {
+    try {
+        const { email } = req.body; 
+        if (!email) return res.status(400).json({ success: false, message: "이메일이 없습니다." });
+        console.log("불러온 함수 확인:", requestVerification);
+        // mail.js에서 가져온 함수 호출
+        const result = await requestVerification(email); 
+        res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+        console.error("API 에러:", err);
+        res.status(500).json({ success: false, message: "서버 내부 에러" });
+    }
+});
+
+app.post('/api/auth/univ-verify', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        const result = await verifyCode(email, code);
+        res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+        res.status(500).json({ success: false, message: "서버 내부 에러" });
     }
 });
 
@@ -181,5 +207,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 매칭 & 채팅 통합 서버가 포트 ${PORT}에서 활기차게 돌아가는 중!`);
+    console.log(`🚀 통합 서버가 포트 ${PORT}에서 활기차게 돌아가는 중!`);
 });
