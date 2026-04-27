@@ -2,12 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-//import { io } from 'socket.io-client';
 import { socket } from "@/app/lib/socket";
 import { supabase } from '@/app/lib/supabase';
-
-// Railway 혹은 로컬 소켓 서버 주소
-//const socket = io("http://localhost:5000");
 
 export default function ChatRoomPage() {
     const router = useRouter();
@@ -45,49 +41,30 @@ export default function ChatRoomPage() {
         fetchUser();
     }, []);
 
-    // 2. 참여자 목록 (단체/개인 통합 로직)
-    useEffect(() => {
+    // 2. 참여자 목록 로드
+    const fetchParticipants = async () => {
         if (!roomId) return;
-
-        const fetchParticipants = async () => {
-            try {
-                // 단체 채팅(숫자 ID) 판별
-                const isNumeric = /^\d+$/.test(roomId);
-                
-                if (isNumeric) {
-                    const { data, error } = await supabase
-                        .from('meeting_participant')
-                        .select(`
-                            role,
-                            user_id,
-                            user:user_id ( id, nickname, bio )
-                        `)
-                        .eq('meeting', parseInt(roomId, 10));
-
-                    if (!error && data && data.length > 0) {
-                        setParticipants(data);
-                        return;
-                    }
-                }
-
-                // 개인 채팅 참여자 조회
-                const { data: privateData } = await supabase
+        try {
+            const isNumeric = /^\d+$/.test(roomId);
+            if (isNumeric) {
+                const { data } = await supabase
+                    .from('meeting_participant')
+                    .select(`role, user_id, user:user_id ( id, nickname, bio )`)
+                    .eq('meeting', parseInt(roomId, 10));
+                if (data) setParticipants(data);
+            } else {
+                const { data } = await supabase
                     .from('chat_room_participant')
-                    .select(`
-                        user_id,
-                        user:user_id ( id, nickname, bio )
-                    `)
+                    .select(`user_id, user:user_id ( id, nickname, bio )`)
                     .eq('room_id', roomId);
-                
-                if (privateData) setParticipants(privateData);
-
-            } catch (err) {
-                console.error("참여자 목록 로드 에러:", err);
+                if (data) setParticipants(data);
             }
-        };
+        } catch (err) {
+            console.error("참여자 목록 로드 에러:", err);
+        }
+    };
 
-        fetchParticipants();
-    }, [roomId]);
+    useEffect(() => { fetchParticipants(); }, [roomId]);
 
     // 3. 메시지 로드 및 소켓 설정
     useEffect(() => {
@@ -135,149 +112,141 @@ export default function ChatRoomPage() {
     useEffect(() => { scrollToBottom(); }, [messages]);
 
     // 4. 메시지 전송
-    const handleSendMessage = async() => {
-
-        console.log("✅ 버튼 클릭됨!");
-    console.log("현재 입력값:", message);
-    console.log("현재 유저ID:", currentUser?.id);
-
-    // 🔍 2단계: 여기서 튕기는지 확인
-    if (!message.trim() || !currentUser?.id) {
-        console.log("❌ 조건 미달로 중단됨 (메시지가 없거나 유저ID가 없음)");
-        return;
-    }
-    
+    const handleSendMessage = async () => {
         if (!message.trim() || !currentUser.id) return;
 
-        // 참여자 목록에서 내가 아닌 상대방의 ID를 찾습니다.
-        // p.user?.id 가 있으면 그걸 쓰고, 없으면 p.user_id를 씁니다.
         const opponent = participants.find(p => (p.user?.id || p.user_id) !== currentUser.id);
         const opponentId = opponent?.user?.id || opponent?.user_id;
         const timeNow = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 
-        // 소켓저송
-        socket.emit('send_message', { 
-            room: roomId, 
-            message, 
-            sender_id: currentUser.id, 
-            sender: currentUser.nickname, 
-            time: timeNow,
-            receiver_id: opponentId 
-        });
-
-        console.log("상대방 ID 확인:", opponentId); // 브라우저 콘솔(F12)에 뭐라고 찍히나요?
-        if (opponentId) 
-
-        //DB에 알림 기록 저장
         if (opponentId) {
-            const { error } = await supabase
-                .from("notifications")
-                .insert([
-                    { 
-                        user_id: opponentId,      // 받는 사람 (상대방)
-                        sender_id: currentUser.id, // 보낸 사람 (나)
-                        content: `${currentUser.nickname}님으로부터 메시지가 도착했습니다.`,
-                        is_read: false,
-                        type: "chat" 
-                    }
-                ]);
-            
-            if (error) console.error("알람 저장 실패:", error);
+            await supabase.from("notifications").insert([{ user_id: opponentId, sender_id: currentUser.id, type: "chat" }]);
         }
 
-        // 3. 내 화면에 메시지 표시
+        socket.emit('send_message', { 
+            room: roomId, message, sender_id: currentUser.id, sender: currentUser.nickname, time: timeNow, receiver_id: opponentId 
+        });
+
         setMessages((prev) => [...prev, {
-            id: Date.now(), 
-            sender: currentUser.nickname, 
-            content: message, 
-            time: timeNow, 
-            isMine: true,
+            id: Date.now(), sender: currentUser.nickname, content: message, time: timeNow, isMine: true,
         }]);
 
         setMessage('');
     };
 
+    // 5. [핵심 추가] 방 나가기 로직
+    const handleLeaveRoom = async () => {
+        if (!window.confirm("정말 이 채팅방을 나가시겠습니까? 참여 목록에서 삭제됩니다.")) return;
+
+        try {
+            const isNumeric = /^\d+$/.test(roomId);
+            const table = isNumeric ? 'meeting_participant' : 'chat_room_participant';
+            const column = isNumeric ? 'meeting' : 'room_id';
+            const filterValue = isNumeric ? parseInt(roomId, 10) : roomId;
+
+            // 내 참여 정보 삭제
+            const { error } = await supabase
+                .from(table)
+                .delete()
+                .eq(column, filterValue)
+                .eq('user_id', currentUser.id);
+
+            if (error) throw error;
+
+            // 남은 인원 확인 후 방 삭제 (선택 사항)
+            const { data: remaining } = await supabase.from(table).select('id').eq(column, filterValue);
+            if (!remaining || remaining.length === 0) {
+                if (!isNumeric) {
+                    await supabase.from('chat_room').delete().eq('id', roomId);
+                }
+            }
+
+            alert("채팅방을 나갔습니다.");
+            router.push('/chat');
+        } catch (err) {
+            console.error("나가기 실패:", err);
+            alert("방을 나가는 중 오류가 발생했습니다.");
+        }
+    };
+
     if (loading) return <div className="flex h-screen items-center justify-center font-bold text-blue-600 animate-pulse">낙낙 로딩 중...</div>;
 
     return (
-        <div className="flex flex-col h-screen bg-neutral-50 overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-neutral-50 overflow-hidden relative font-sans">
             <div className="flex-1 w-full max-w-2xl mx-auto h-full flex flex-col p-4">
-                <div className="flex-1 bg-white rounded-3xl border border-neutral-200 shadow-lg flex flex-col relative overflow-hidden">
-                    
-                    <header className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-white">
+                <div className="flex-1 bg-white rounded-[40px] border border-neutral-200 shadow-2xl flex flex-col relative overflow-hidden">
+                    <header className="flex items-center justify-between px-8 py-6 border-b border-neutral-50 bg-white/80 backdrop-blur-md sticky top-0 z-10">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => router.push('/chat')} className="p-2 hover:bg-neutral-100 rounded-full">←</button>
-                            <h1 className="text-lg font-bold text-gray-950">채팅방 💬</h1>
+                            <button onClick={() => router.push('/chat')} className="p-2 hover:bg-neutral-100 rounded-full transition-colors text-xl font-bold">←</button>
+                            <h1 className="text-xl font-black text-gray-950">Chat Room 💬</h1>
                         </div>
-                        <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-neutral-100 rounded-full font-black">⋮</button>
+                        <button onClick={() => setIsSidebarOpen(true)} className="p-2 hover:bg-neutral-100 rounded-full font-black text-xl">⋮</button>
                     </header>
 
-                    <main className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                    <main className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-[#fdfdfd]">
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`flex flex-col ${msg.isMine ? 'items-end' : 'items-start'}`}>
-                                {!msg.isMine && <span className="text-[11px] text-gray-400 mb-1 ml-1">{msg.sender}</span>}
+                                {!msg.isMine && <span className="text-[11px] font-bold text-gray-400 mb-1 ml-1">{msg.sender}</span>}
                                 <div className={`flex items-end gap-2 ${msg.isMine ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[240px] ${
-                                        msg.isMine ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-neutral-100 text-gray-900 rounded-tl-none'
+                                    <div className={`px-5 py-3 rounded-[24px] text-[14px] font-medium max-w-[260px] shadow-sm ${
+                                        msg.isMine ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-neutral-100 text-gray-900 rounded-tl-none'
                                     }`}>
                                         {msg.content}
                                     </div>
-                                    <span className="text-[9px] text-gray-300 pb-1">{msg.time}</span>
+                                    <span className="text-[10px] text-gray-300 pb-1 font-medium">{msg.time}</span>
                                 </div>
                             </div>
                         ))}
                         <div ref={messagesEndRef} />
                     </main>
 
-                    <footer className="p-4 border-t border-neutral-100">
-                        <div className="flex items-center gap-2 bg-neutral-50 rounded-2xl px-4 py-2 border border-neutral-200">
+                    <footer className="p-6 border-t border-neutral-50 bg-white">
+                        <div className="flex items-center gap-3 bg-neutral-50 rounded-[28px] px-6 py-3 border border-neutral-100 focus-within:border-blue-300 transition-all">
                             <input 
-                                className="flex-1 bg-transparent text-sm outline-none py-2" 
+                                className="flex-1 bg-transparent text-sm outline-none py-2 font-medium" 
                                 value={message} 
                                 onChange={(e) => setMessage(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="메시지를 입력하세요..." 
+                                placeholder="따뜻한 메시지를 남겨보세요..." 
                             />
-                            <button onClick={handleSendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">전송</button>
+                            <button onClick={handleSendMessage} className="bg-blue-600 text-white px-6 py-2.5 rounded-[20px] text-xs font-black shadow-lg shadow-blue-100 hover:scale-105 active:scale-95 transition-all">전송</button>
                         </div>
                     </footer>
                 </div>
             </div>
 
-            {/* 참여자 사이드바 - 프로필 연결 포함 */}
+            {/* 사이드바 - 나가기 버튼 추가 */}
             {isSidebarOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-end">
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-                    <div className="relative w-80 h-full bg-white shadow-2xl flex flex-col p-6 animate-in slide-in-from-right">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="font-black text-gray-950 text-xl">참여자 ({participants.length})</h2>
-                            <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400">✕</button>
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
+                    <div className="relative w-80 h-full bg-white shadow-2xl flex flex-col p-8 animate-in slide-in-from-right duration-300">
+                        <div className="flex items-center justify-between mb-10">
+                            <h2 className="font-black text-gray-950 text-2xl tracking-tighter">참여자 ({participants.length})</h2>
+                            <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400 text-2xl hover:rotate-90 transition-transform">✕</button>
                         </div>
                         
-                        <div className="space-y-4 overflow-y-auto flex-1 no-scrollbar">
+                        <div className="space-y-5 overflow-y-auto flex-1 no-scrollbar">
                             {participants.map((p, i) => (
-                                <div 
-                                    key={i} 
-                                    className="flex items-center gap-4 border-b border-neutral-50 pb-4 cursor-pointer hover:bg-blue-50/50 p-2 rounded-2xl transition-all"
-                                    onClick={() => {
-                                        const targetId = p.user?.id || p.user_id;
-                                        if (targetId) router.push(`/profile/${targetId}`);
-                                    }}
-                                >
-                                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-white shadow-sm">
+                                <div key={i} className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-blue-50/50 transition-all cursor-pointer" onClick={() => router.push(`/profile/${p.user?.id || p.user_id}`)}>
+                                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 flex items-center justify-center text-blue-600 font-bold border-2 border-white shadow-md">
                                         {p.user?.nickname?.[0] || '👤'}
                                     </div>
                                     <div className="flex flex-col min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-bold text-gray-900 truncate">{p.user?.nickname || "알 수 없음"}</span>
-                                            {p.role === 'host' && <span className="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">방장</span>}
+                                            <span className="text-[15px] font-black text-gray-900 truncate">{p.user?.nickname || "알 수 없음"}</span>
+                                            {p.role === 'host' && <span className="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-black">HOST</span>}
                                         </div>
-                                        <p className="text-[11px] text-gray-400 truncate mt-1">{p.user?.bio || "자기소개가 없어요."}</p>
+                                        <p className="text-[12px] text-gray-400 truncate mt-0.5 font-medium">{p.user?.bio || "KNOCK KNOCK 유저입니다."}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <button onClick={() => setIsSidebarOpen(false)} className="mt-6 w-full py-4 bg-neutral-950 text-white rounded-2xl text-sm font-bold">닫기</button>
+
+                        {/* [나가기 버튼 영역] */}
+                        <div className="mt-8 space-y-3">
+                            <button onClick={handleLeaveRoom} className="w-full py-5 bg-red-50 text-red-600 rounded-[24px] text-sm font-black hover:bg-red-600 hover:text-white transition-all shadow-sm">방 나가기</button>
+                            <button onClick={() => setIsSidebarOpen(false)} className="w-full py-5 bg-neutral-100 text-gray-500 rounded-[24px] text-sm font-black">닫기</button>
+                        </div>
                     </div>
                 </div>
             )}

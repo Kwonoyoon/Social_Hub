@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BottomNav from '../components/BottomNav';
+import { supabase } from '@/app/lib/supabase';
 
 const AiRobotBadge = ({ className }: { className?: string }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -34,14 +35,23 @@ export default function ChatListPolished() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedParticipants, setSelectedParticipants] = useState<any[]>([]);
-
     useEffect(() => {
         const fetchChatRooms = async () => {
-            const storedId = localStorage.getItem('userId');
-            if (!storedId) return;
+            // 1. [수정] localStorage 대신 Supabase 세션에서 내 ID를 직접 가져옵니다.
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                console.log("로그인된 유저가 없습니다.");
+                setLoading(false);
+                return;
+            }
+
+            const currentUserId = user.id; // 실제 로그인한 유저의 UUID
             setLoading(true);
+            
             try {
-                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${storedId}`);
+                // 2. [수정] 위에서 가져온 정확한 ID로 요청을 보냅니다.
+                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${currentUserId}`);
                 const data = await res.json();
                 if (Array.isArray(data)) setChatRooms(data);
             } catch (err) {
@@ -50,13 +60,13 @@ export default function ChatListPolished() {
                 setLoading(false);
             }
         };
+        
         fetchChatRooms();
-    }, []);
-
+    }, []); // 만약 로그인 상태가 바뀔 때마다 갱신하고 싶다면 의존성 배열에 router 등을 넣을 수 있습니다.
     const filteredRooms = chatRooms.filter(chat => {
         const matchesTab = activeTab === '전체' || 
-                          (activeTab === '그룹' && chat.type === 'group') || 
-                          (activeTab === '개인' && chat.type === 'private');
+                        (activeTab === '그룹' && chat.type === 'group') || 
+                        (activeTab === '개인' && chat.type === 'private');
         const matchesSearch = chat.title.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesTab && matchesSearch;
     });

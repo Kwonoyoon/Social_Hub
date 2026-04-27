@@ -131,7 +131,7 @@ export default function UserProfilePage() {
                                 #{tag}
                             </span>
                         ))}
-                    </div>
+                    </div>  
                 </section>
             </main>
         </div>
