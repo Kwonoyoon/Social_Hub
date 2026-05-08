@@ -13,6 +13,58 @@ export default function MainPage() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    // 기존 변수들은 그대로 두시고, 아래 3개만 새로 만드세요.
+// 1. 상태 변수들은 그대로 두세요 (17~19번 줄)
+const [foodKeyword, setFoodKeyword] = useState("");
+const [foodPlaces, setFoodPlaces] = useState<any[]>([]);
+const [isFoodSearching, setIsFoodSearching] = useState(false);
+
+// 2. 함수 시작 (중복된 20번, 26번 줄 합침)
+const handleFoodSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const target = foodKeyword.trim();
+    if (!target) return;
+
+    setIsFoodSearching(true);
+    // 반드시 'REST API 키'여야 합니다!
+    const REST_API_KEY = '0d0e846e52295731847d7c32a0f5cf3c'; 
+
+    try {
+        const response = await fetch(
+            `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(target + " 맛집")}&category_group_code=FD6`,
+            {
+                method: 'GET',
+                headers: {
+                    // ★ 여기가 핵심: Authorization 뒤에 콜론(:)과 'KakaoAK ' (한 칸 띄움) 필수!
+                    'Authorization': `KakaoAK ${REST_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            const errorMsg = await response.text();
+            console.error("카카오 응답 내용:", errorMsg);
+            throw new Error(`${response.status}`);
+        }
+
+        const data = await response.json();
+        setFoodPlaces(data.documents || []);
+
+    } catch (error: any) {
+        console.error("맛집 검색 실패:", error);
+        // 에러가 403이면 브라우저 알림창 띄우기
+        if (error.message === '403') {
+            alert("카카오 설정(REST API 키 혹은 도메인)을 다시 확인해주세요.");
+        }
+    } finally {
+        setIsFoodSearching(false);
+    }
+};
+
+// 3. 페이지 로드 시 실행 (이미 useEffect가 있다면 그 안에 fetchPlaces(); 만 추가해도 됩니다)
+useEffect(() => {
+}, []);
     useEffect(() => {
         async function loadData() {
             try {
@@ -126,26 +178,29 @@ export default function MainPage() {
                     </div>
                 </section>
 
-                <section className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-[13px] font-black text-gray-900 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-gray-900 rounded-full"></span> 나의 관심사
-                        </h3>
-                        <button onClick={() => router.push('/onboarding?mode=edit')} className="text-blue-500 text-[11px] font-bold underline">편집</button>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                        {["#코미디", "#애니메이션", "#EDM", "#게임"].map(tag => (
-                            <span 
-                                key={tag} 
-                                onClick={() => handleCategoryClick(tag.replace('#', ''))}
-                                className="px-3 py-1.5 bg-gray-50 text-gray-400 rounded-full text-[11px] font-bold border border-gray-100 cursor-pointer hover:text-blue-600 transition-colors"
-                            >
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                </section>
-            </main>
+                {/* 나의 관심사 대신 들어가는 핫플레이스 섹션 */}
+                <form onSubmit={handleFoodSearch} className="mb-6 flex gap-2">
+    <input 
+        type="text" 
+        value={foodKeyword}
+        onChange={(e) => setFoodKeyword(e.target.value)}
+        placeholder="학교 주변 맛집 검색"
+        className="flex-1 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-[12px] focus:outline-none"
+    />
+    <button type="submit" className="bg-blue-500 text-white px-5 py-3 rounded-2xl text-[12px] font-bold">
+        {isFoodSearching ? "..." : "검색"}
+    </button>
+</form>
+
+<div className="flex gap-2 flex-wrap">
+    {foodPlaces.map((place) => (
+        <a key={place.id} href={place.place_url} target="_blank" className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold border border-blue-100">
+            #{place.place_name}
+        </a>
+    ))}
+</div>
+
+</main>
 
             <BottomNav />
         </div>
