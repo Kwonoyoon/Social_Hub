@@ -48,10 +48,11 @@ export default function ChatListPolished() {
 
             const currentUserId = user.id; // 실제 로그인한 유저의 UUID
             setLoading(true);
-            
+            const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
+
             try {
                 // 2. [수정] 위에서 가져온 정확한 ID로 요청을 보냅니다.
-                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${currentUserId}`);
+                const res = await fetch(`${API_URL}/api/chat/list?userId=${currentUserId}`);
                 const data = await res.json();
                 if (Array.isArray(data)) setChatRooms(data);
             } catch (err) {

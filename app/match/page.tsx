@@ -36,7 +36,11 @@ export default function MatchPage() {
             setMyUuid(storedId);
 
             try {
-                const res = await fetch(`http://localhost:5000/api/match?userId=${storedId}`);
+               // 1. 먼저 환경 변수를 불러오도록 선언 (파일 상단에 한 번만 있으면 됩니다)
+const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
+
+// 2. fetch 부분을 아래와 같이 수정 (백틱 ` 사용 주의!)
+const res = await fetch(`${API_URL}/api/match?userId=${storedId}`);
                 const data = await res.json();
 
                 if (Array.isArray(data)) {
@@ -57,8 +61,11 @@ export default function MatchPage() {
         const targetUser = likes[currentIndex];
         if (!targetUser || !myUuid) return;
 
+
+        const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
+
         try {
-            const res = await fetch(`http://localhost:5000/api/match/action`, {
+            const res = await fetch(`${API_URL}/api/match/action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
