@@ -207,5 +207,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 통합 서버가 포트 ${PORT}에서 활기차게 돌아가는 중!`);
+    console.log(`🚀 서버가 포트 ${PORT}에서 달리는 중!`);
 });
