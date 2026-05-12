@@ -2,7 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(NEXT_PUBLIC_process.env.SUPABASE_URL, NEXT_PUBLIC_process.env.SUPABASE_ANON_KEY);
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
