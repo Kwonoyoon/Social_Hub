@@ -270,11 +270,11 @@ export default function OnboardingPage() {
                 type="text"
                 value={onboardingData.nickname}
                 onChange={(e) => {
-                  if (getCharLength(e.target.value) <= 4) {
+                  if (getCharLength(e.target.value) <= 8) {
                     setOnboardingData({ ...onboardingData, nickname: e.target.value });
                   }
                 }}
-                placeholder="닉네임 (4자 이내)"
+                placeholder="닉네임 (8자 이내)"
                 className="w-full p-5 bg-gray-50 rounded-3xl border-2 border-gray-50 outline-none font-medium"
               />
               <input

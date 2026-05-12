@@ -81,6 +81,21 @@ export default function MyPage() {
 
     useEffect(() => { fetchProfileData(); }, [router]);
 
+    // 💡 로그아웃 처리 함수 추가
+    const handleLogout = async () => {
+        const confirmLogout = window.confirm("정말 로그아웃 하시겠습니까?");
+        if (confirmLogout) {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error("로그아웃 오류:", error.message);
+                alert("로그아웃 처리 중 문제가 발생했습니다.");
+            } else {
+                // 로그아웃 성공 시 메인 화면(또는 로그인 화면)으로 이동
+                router.push('/');
+            }
+        }
+    };
+
     // 💡 400 에러 원천 차단: 관계 조인 없이 수동 패칭
     const handleShowList = async (mode: "FOLLOWING" | "FOLLOWER") => {
         setViewMode(mode);
@@ -177,6 +192,8 @@ export default function MyPage() {
                         <section className="bg-white rounded-[45px] shadow-sm border border-gray-50 overflow-hidden divide-y divide-gray-50">
                             <MenuListItem icon="👥" title="팔로워 / 팔로잉 리스트 확인" onClick={() => handleShowList('FOLLOWING')} />
                             <MenuListItem icon="⚙️" title="앱 설정 및 알림 관리" />
+                            {/* 💡 로그아웃 메뉴 항목 추가 */}
+                            <MenuListItem icon="🚪" title="로그아웃" onClick={handleLogout} />
                         </section>
                     </>
                 )}
