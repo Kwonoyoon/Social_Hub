@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from '@/app/lib/supabase';
 
@@ -25,7 +25,7 @@ function getCharLength(str: string): number {
   return [...str].length;
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
@@ -392,5 +392,13 @@ export default function OnboardingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]"><p className="text-gray-400 font-bold">로딩 중...</p></div>}>
+      <OnboardingContent />
+    </Suspense>
   );
 }
