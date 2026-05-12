@@ -51,13 +51,9 @@ export default function ChatListPolished() {
             const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
 
             try {
-<<<<<<< HEAD
                 // 2. [수정] 위에서 가져온 정확한 ID로 요청을 보냅니다.
                 const res = await fetch(`${API_URL}/api/chat/list?userId=${currentUserId}`);
-=======
-                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${currentUserId}`);
->>>>>>> b92eb6db07202479d54ac42ff29eb253ff56eff1
-                const data = await res.json();
+                                const data = await res.json();
                 if (Array.isArray(data)) setChatRooms(data);
             } catch (err) {
                 console.error("채팅 목록 불러오기 실패:", err);
