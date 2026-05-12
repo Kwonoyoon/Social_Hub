@@ -168,7 +168,7 @@ export default function UnifiedCategoryPage() {
                             <button onClick={() => setIsCreateModalOpen(true)} className="text-blue-600 font-black text-[11px] bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all">+ 모임 만들기</button>
                         </div>
 
-                        {/* 추천 카드: aspect 조절로 크기 최적화 */}
+                        {/* 추천 카드 */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
                             {displayedMeetings.slice(0, 2).map((room) => (
                                 <div key={room.meeting_id} className="relative group rounded-[30px] aspect-[16/10] bg-gray-900 overflow-hidden shadow-sm">
@@ -237,7 +237,7 @@ export default function UnifiedCategoryPage() {
                 </aside>
             </div>
 
-            {/* 모달들은 기존 로직 유지 (들여쓰기만 조정) */}
+            {/* 비밀번호 모달 */}
             {passModalRoom && (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4">
                     <div className="bg-white w-full max-w-xs rounded-[32px] p-8 shadow-2xl">
@@ -250,7 +250,64 @@ export default function UnifiedCategoryPage() {
                     </div>
                 </div>
             )}
-            {/* 나머지 모달 생략 (코드 구조 동일) */}
+
+            {/* 정보보기 모달 */}
+            {infoModalRoom && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4" onClick={() => setInfoModalRoom(null)}>
+                    <div className="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-xl font-black text-gray-900 mb-2">{infoModalRoom.title}</h2>
+                        <p className="text-sm text-gray-500 mb-6">{infoModalRoom.description || "설명이 없습니다."}</p>
+                        <div className="bg-gray-50 p-4 rounded-2xl mb-6">
+                            <p className="text-xs font-bold text-gray-400">최대 인원</p>
+                            <p className="text-lg font-black text-gray-800">{infoModalRoom.max_capacity}명</p>
+                        </div>
+                        <button onClick={() => setInfoModalRoom(null)} className="w-full py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-sm hover:bg-gray-200 transition-colors">닫기</button>
+                    </div>
+                </div>
+            )}
+
+            {/* 💡 새 모임 만들기 모달 (복구됨) */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4" onClick={() => setIsCreateModalOpen(false)}>
+                    <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <h2 className="text-xl font-black text-gray-900 mb-6 text-center">새 모임 만들기 🚀</h2>
+                        
+                        <div className="space-y-4 mb-8">
+                            <input 
+                                type="text" placeholder="모임 제목을 입력하세요" 
+                                className="w-full bg-gray-50 rounded-xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100" 
+                                value={newRoom.title} 
+                                onChange={(e) => setNewRoom({...newRoom, title: e.target.value})} 
+                            />
+                            <textarea 
+                                placeholder="모임 설명을 간단히 적어주세요" 
+                                className="w-full bg-gray-50 rounded-xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100 resize-none h-24" 
+                                value={newRoom.description} 
+                                onChange={(e) => setNewRoom({...newRoom, description: e.target.value})} 
+                            />
+                            <div className="flex gap-4">
+                                <input 
+                                    type="number" placeholder="최대 인원 (기본 4명)" 
+                                    className="w-full bg-gray-50 rounded-xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100" 
+                                    value={newRoom.max_capacity} 
+                                    onChange={(e) => setNewRoom({...newRoom, max_capacity: parseInt(e.target.value) || 4})} 
+                                />
+                                <input 
+                                    type="password" placeholder="비밀번호 (선택)" 
+                                    className="w-full bg-gray-50 rounded-xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-100" 
+                                    value={newRoom.password} 
+                                    onChange={(e) => setNewRoom({...newRoom, password: e.target.value})} 
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black text-sm hover:bg-gray-200 transition-colors">취소</button>
+                            <button onClick={handleCreateRoom} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-blue-200 hover:scale-[1.02] transition-all">만들기</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
