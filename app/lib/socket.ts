@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || "http://localhost:5000";
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL;
 
 
 export const socket = io(SOCKET_URL, {

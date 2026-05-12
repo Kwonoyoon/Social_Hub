@@ -48,7 +48,7 @@ export default function ChatListPolished() {
 
             const currentUserId = user.id; 
             setLoading(true);
-            const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
+            const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
             try {
                 // 2. [수정] 위에서 가져온 정확한 ID로 요청을 보냅니다.
