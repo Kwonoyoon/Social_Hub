@@ -6,7 +6,7 @@ import { supabase } from '@/app/lib/supabase';
 
 type Step = 'start' | 'auth' | 'profile' | 'movie' | 'music' | 'hobby' | 'mbti';
 
-const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 const interestData = {
   영화: ["액션/스릴러", "로맨스", "코미디", "드라마", "공포/호러", "SF/판타지", "애니메이션", "다큐멘터리"],
