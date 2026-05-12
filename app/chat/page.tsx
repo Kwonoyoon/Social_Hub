@@ -35,9 +35,9 @@ export default function ChatListPolished() {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedParticipants, setSelectedParticipants] = useState<any[]>([]);
+
     useEffect(() => {
         const fetchChatRooms = async () => {
-            // 1. [수정] localStorage 대신 Supabase 세션에서 내 ID를 직접 가져옵니다.
             const { data: { user } } = await supabase.auth.getUser();
             
             if (!user) {
@@ -46,13 +46,17 @@ export default function ChatListPolished() {
                 return;
             }
 
-            const currentUserId = user.id; // 실제 로그인한 유저의 UUID
+            const currentUserId = user.id; 
             setLoading(true);
             const API_URL = process.env.NEXT_PUBLIC_KNOCK_KNOCK_API || 'http://localhost:5000';
 
             try {
+<<<<<<< HEAD
                 // 2. [수정] 위에서 가져온 정확한 ID로 요청을 보냅니다.
                 const res = await fetch(`${API_URL}/api/chat/list?userId=${currentUserId}`);
+=======
+                const res = await fetch(`http://localhost:5000/api/chat/list?userId=${currentUserId}`);
+>>>>>>> b92eb6db07202479d54ac42ff29eb253ff56eff1
                 const data = await res.json();
                 if (Array.isArray(data)) setChatRooms(data);
             } catch (err) {
@@ -63,7 +67,8 @@ export default function ChatListPolished() {
         };
         
         fetchChatRooms();
-    }, []); // 만약 로그인 상태가 바뀔 때마다 갱신하고 싶다면 의존성 배열에 router 등을 넣을 수 있습니다.
+    }, []); 
+
     const filteredRooms = chatRooms.filter(chat => {
         const matchesTab = activeTab === '전체' || 
                         (activeTab === '그룹' && chat.type === 'group') || 
@@ -72,9 +77,8 @@ export default function ChatListPolished() {
         return matchesTab && matchesSearch;
     });
 
-    // 💡 아바타 클릭 시 참여자 모달 오픈
     const handleAvatarClick = (e: React.MouseEvent, participants: any[]) => {
-        e.stopPropagation(); // 리스트 클릭(채팅방 입장) 방지
+        e.stopPropagation(); 
         setSelectedParticipants(participants || []);
         setIsModalOpen(true);
     };
@@ -113,10 +117,16 @@ export default function ChatListPolished() {
                             {filteredRooms.map((chat) => (
                                 <li 
                                     key={chat.id} 
-                                    onClick={() => router.push(`/chat/${chat.id}`)}
+                                    onClick={() => {
+                                        // 💡 핵심 수정 부분: 모임방일 경우 meeting_id를 주소로 넘김
+                                        if (chat.type === 'group') {
+                                            router.push(`/chat/${chat.meeting_id || chat.id}`);
+                                        } else {
+                                            router.push(`/chat/${chat.id}`);
+                                        }
+                                    }}
                                     className="p-4 flex items-center gap-4 bg-white rounded-2xl border border-neutral-100 hover:bg-neutral-50 active:scale-[0.98] cursor-pointer transition-all shadow-sm"
                                 >
-                                    {/* 💡 아바타 클릭 시 참여자 명단이 뜨도록 수정 */}
                                     <div 
                                         onClick={(e) => handleAvatarClick(e, chat.participants)}
                                         className="relative flex-shrink-0 w-14 h-14 hover:opacity-80 transition-opacity"

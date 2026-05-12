@@ -41,18 +41,26 @@ export default function ChatRoomPage() {
         fetchUser();
     }, []);
 
-    // 2. 참여자 목록 로드
+    // 2. 참여자 목록 로드 (💡 정규식 대신 DB를 조회하여 모임방인지 확인)
     const fetchParticipants = async () => {
         if (!roomId) return;
         try {
-            const isNumeric = /^\d+$/.test(roomId);
-            if (isNumeric) {
+            // room_id(UUID)를 통해 meeting 테이블에 해당 방이 있는지 찔러봅니다.
+            const { data: meetingData } = await supabase
+                .from('meeting')
+                .select('meeting_id')
+                .eq('room_id', roomId)
+                .maybeSingle();
+
+            if (meetingData) {
+                // ✅ 모임방 데이터가 존재함 -> 모임방 참여자 로드
                 const { data } = await supabase
                     .from('meeting_participant')
                     .select(`role, user_id, user:user_id ( id, nickname, bio )`)
-                    .eq('meeting', parseInt(roomId, 10));
+                    .eq('meeting_id', meetingData.meeting_id);
                 if (data) setParticipants(data);
             } else {
+                // ✅ 모임방 데이터가 없음 -> 1:1 채팅방 참여자 로드
                 const { data } = await supabase
                     .from('chat_room_participant')
                     .select(`user_id, user:user_id ( id, nickname, bio )`)
@@ -111,20 +119,26 @@ export default function ChatRoomPage() {
 
     useEffect(() => { scrollToBottom(); }, [messages]);
 
-    // 4. 메시지 전송
+    // 4. 메시지 전송 (💡 다인원 모임방 알림 전송 로직 적용)
     const handleSendMessage = async () => {
         if (!message.trim() || !currentUser.id) return;
 
-        const opponent = participants.find(p => (p.user?.id || p.user_id) !== currentUser.id);
-        const opponentId = opponent?.user?.id || opponent?.user_id;
+        // 나를 제외한 '모든' 참여자 필터링
+        const opponents = participants.filter(p => (p.user?.id || p.user_id) !== currentUser.id);
         const timeNow = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
 
-        if (opponentId) {
-            await supabase.from("notifications").insert([{ user_id: opponentId, sender_id: currentUser.id, type: "chat" }]);
+        // 여러 명에게 한 번에 알림 전송
+        if (opponents.length > 0) {
+            const notifications = opponents.map(opp => ({
+                user_id: opp.user?.id || opp.user_id,
+                sender_id: currentUser.id,
+                type: "chat"
+            }));
+            await supabase.from("notifications").insert(notifications);
         }
 
         socket.emit('send_message', { 
-            room: roomId, message, sender_id: currentUser.id, sender: currentUser.nickname, time: timeNow, receiver_id: opponentId 
+            room: roomId, message, sender_id: currentUser.id, sender: currentUser.nickname, time: timeNow 
         });
 
         setMessages((prev) => [...prev, {
@@ -134,29 +148,31 @@ export default function ChatRoomPage() {
         setMessage('');
     };
 
-    // 5. [핵심 추가] 방 나가기 로직
+    // 5. 방 나가기 로직 (💡 DB 조회 기반으로 분기 처리)
     const handleLeaveRoom = async () => {
         if (!window.confirm("정말 이 채팅방을 나가시겠습니까? 참여 목록에서 삭제됩니다.")) return;
 
         try {
-            const isNumeric = /^\d+$/.test(roomId);
-            const table = isNumeric ? 'meeting_participant' : 'chat_room_participant';
-            const column = isNumeric ? 'meeting' : 'room_id';
-            const filterValue = isNumeric ? parseInt(roomId, 10) : roomId;
+            const { data: meetingData } = await supabase
+                .from('meeting')
+                .select('meeting_id')
+                .eq('room_id', roomId)
+                .maybeSingle();
 
-            // 내 참여 정보 삭제
-            const { error } = await supabase
-                .from(table)
-                .delete()
-                .eq(column, filterValue)
-                .eq('user_id', currentUser.id);
-
-            if (error) throw error;
-
-            // 남은 인원 확인 후 방 삭제 (선택 사항)
-            const { data: remaining } = await supabase.from(table).select('id').eq(column, filterValue);
-            if (!remaining || remaining.length === 0) {
-                if (!isNumeric) {
+            if (meetingData) {
+                // 모임방 나가기
+                await supabase.from('meeting_participant').delete()
+                    .eq('meeting_id', meetingData.meeting_id)
+                    .eq('user_id', currentUser.id);
+            } else {
+                // 1:1 방 나가기
+                await supabase.from('chat_room_participant').delete()
+                    .eq('room_id', roomId)
+                    .eq('user_id', currentUser.id);
+                
+                // 1:1 방은 혼자 남으면 방 자체를 삭제
+                const { data: remaining } = await supabase.from('chat_room_participant').select('id').eq('room_id', roomId);
+                if (!remaining || remaining.length === 0) {
                     await supabase.from('chat_room').delete().eq('id', roomId);
                 }
             }
@@ -215,7 +231,7 @@ export default function ChatRoomPage() {
                 </div>
             </div>
 
-            {/* 사이드바 - 나가기 버튼 추가 */}
+            {/* 사이드바 */}
             {isSidebarOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-end">
                     <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
@@ -242,7 +258,6 @@ export default function ChatRoomPage() {
                             ))}
                         </div>
 
-                        {/* [나가기 버튼 영역] */}
                         <div className="mt-8 space-y-3">
                             <button onClick={handleLeaveRoom} className="w-full py-5 bg-red-50 text-red-600 rounded-[24px] text-sm font-black hover:bg-red-600 hover:text-white transition-all shadow-sm">방 나가기</button>
                             <button onClick={() => setIsSidebarOpen(false)} className="w-full py-5 bg-neutral-100 text-gray-500 rounded-[24px] text-sm font-black">닫기</button>
