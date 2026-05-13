@@ -1,20 +1,28 @@
 {
-  "name": "my-next-app",
-  "version": "0.1.0",
-  "private": true,
+  "name": "knock-knock-server",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "next dev",
+    "start": "node server.js",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.99.2",
-    "lucide-react": "^1.0.1",
+    "@supabase/supabase-js": "^2.101.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ml-distance": "^4.0.1",
+    "natural": "^8.1.1",
+    "nodemailer": "^8.0.6",
+    "socket.io": "^4.8.3",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "lucide-react": "^1.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -26,16 +34,14 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "description": "��#\u0000 \u0000S\u0000o\u0000c\u0000i\u0000a\u0000l\u0000 \u0000H\u0000u\u0000b\u0000\r\u0000 \u0000",
-  "main": "index.js",
+  "description": "Social Hub Project - Knock Knock Server",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kwonoyoon/Social_Hub.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Kwon O-yoon",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/Kwonoyoon/Social_Hub/issues"
   },
