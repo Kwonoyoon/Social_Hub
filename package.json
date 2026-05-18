@@ -2,7 +2,7 @@
   "name": "knock-knock-server",
   "version": "1.0.0",
   "main": "server.cjs",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
