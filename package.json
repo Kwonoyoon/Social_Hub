@@ -2,8 +2,8 @@
   "name": "knock-knock-server",
   "version": "1.0.0",
   "main": "server.js",
-  "type": "commonjs",
   "scripts": {
+    "build": "next build",
     "start": "node server.js",
     "dev": "node server.js"
   },
