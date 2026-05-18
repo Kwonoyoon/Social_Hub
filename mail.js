@@ -1,16 +1,13 @@
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer');
+// 1. nodemailer 대신 resend 라이브러리를 가져옵니다.
+const { Resend } = require('resend'); 
 require('dotenv').config();
 
-const supabase = createClient(NEXT_PUBLIC_process.env.SUPABASE_URL, NEXT_PUBLIC_process.env.SUPABASE_ANON_KEY);
+// (참고: NEXT_PUBLIC_process.env는 문법 오류가 날 수 있어 process.env로 깔끔하게 통일했습니다)
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: (process.env.EMAIL_PASS || "").replace(/\s+/g, ""),
-    },
-});
+// 2. Resend 인스턴스를 생성합니다. (환경변수에서 API 키를 가져옴)
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * [STEP 1] 인증번호 발송 및 저장 (발송 시점)
@@ -23,15 +20,23 @@ const requestVerification = async (targetEmail) => {
     const vCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
-        // 1. 메일 발송
-        await transporter.sendMail({
-            from: process.env.EMAIL_USER,
+        // 3. nodemailer 발송 로직을 Resend API 호출 방식으로 변경했습니다.
+        const { data, error: mailError } = await resend.emails.send({
+            from: 'KnockKnock <onboarding@resend.dev>', // ⚠️도메인 인증 전에는 이 주소 고정입니다.
             to: targetEmail,
             subject: '[Knock Knock] 대학생 인증번호',
-            text: `인증번호는 [${vCode}] 입니다. 5분 이내에 입력해주세요.`
+            text: `인증번호는 [${vCode}] 입니다. 5분 이내에 입력해주세요.`,
+            // html을 추가하면 조금 더 깔끔하게 메일이 보입니다 (선택 사항)
+            html: `<p>인증번호는 <strong>[${vCode}]</strong> 입니다.</p><p>5분 이내에 입력해주세요.</p>`
         });
 
-        // 2. DB 저장 (만료시간 체크를 위해 현재시간 저장)
+        // 메일 발송 자체에 실패했을 경우 에러 핸들링
+        if (mailError) {
+            console.error("❌ Resend 메일 발송 실패:", mailError);
+            return { success: false, error: mailError.message };
+        }
+
+        // 4. DB 저장은 기존 로직 완벽하게 유지!
         await supabase
             .from('email_verifications')
             .upsert({ 
@@ -50,10 +55,10 @@ const requestVerification = async (targetEmail) => {
 
 /**
  * [STEP 2] 인증번호 검증 (사용자가 입력했을 때)
+ * 👉 이 단계는 기존 코드가 완벽하므로 건드릴 것이 없습니다!
  */
 const verifyCode = async (userEmail, inputCode) => {
     try {
-        // 1. DB에서 해당 이메일의 최신 정보 가져오기
         const { data, error } = await supabase
             .from('email_verifications')
             .select('code, created_at')
@@ -62,7 +67,6 @@ const verifyCode = async (userEmail, inputCode) => {
 
         if (error || !data) return { success: false, message: "인증 요청 내역이 없습니다." };
 
-        // 2. 만료 시간 체크 (5분 제한)
         const now = new Date();
         const createdAt = new Date(data.created_at);
         const diffMinutes = (now - createdAt) / (1000 * 60);
@@ -71,10 +75,8 @@ const verifyCode = async (userEmail, inputCode) => {
             return { success: false, message: "인증 시간이 만료되었습니다. 다시 요청해주세요." };
         }
 
-        // 3. 번호 대조
         if (data.code === inputCode) {
             console.log(`✨ [${userEmail}] 인증 최종 성공!`);
-            // 여기서 실제 유저 테이블의 is_verified를 true로 바꾸는 로직을 추가하면 완벽합니다.
             return { success: true, message: "인증에 성공했습니다." };
         } else {
             return { success: false, message: "인증번호가 일치하지 않습니다." };
