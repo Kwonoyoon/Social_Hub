@@ -1,14 +1,11 @@
 {
   "name": "knock-knock-server",
   "version": "1.0.0",
-  "main": "server.cjs",
+  "main": "server.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "server": "node server.cjs",
-    "lint": "eslint"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
