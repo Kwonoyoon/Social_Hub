@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react'; // Suspense 추가
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from '@/app/lib/supabase';
 
@@ -25,7 +25,8 @@ function getCharLength(str: string): number {
   return [...str].length;
 }
 
-export default function OnboardingPage() {
+// --- 1. 실제 온보딩 로직을 담당하는 컴포넌트 분리 ---
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('mode') === 'edit';
@@ -262,7 +263,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step profile: 프로필 입력 (이미지 제거) */}
+        {/* Step profile: 프로필 입력 */}
         {currentStep === 'profile' && (
           <div className="flex flex-col w-full">
             <div className="space-y-6">
@@ -392,5 +393,18 @@ export default function OnboardingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// --- 2. 기본 export: Suspense로 감싸기 ---
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fc]">
+        <p className="font-black text-blue-600 animate-pulse">잠시만 기다려주세요...</p>
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   );
 }

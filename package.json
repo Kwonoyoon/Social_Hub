@@ -1,12 +1,13 @@
 {
   "name": "knock-knock-server",
   "version": "1.0.0",
-  "main": "server.js",
-  "type": "commonjs",
+  "main": "server.cjs",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "dev": "next dev",
     "build": "next build",
+    "start": "next start",
+    "server": "node server.cjs",
     "lint": "eslint"
   },
   "dependencies": {
@@ -14,15 +15,16 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "lucide-react": "^1.0.1",
     "ml-distance": "^4.0.1",
     "natural": "^8.1.1",
-    "nodemailer": "^8.0.6",
-    "socket.io": "^4.8.3",
     "next": "16.1.6",
+    "nodemailer": "^8.0.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "socket.io-client": "^4.8.3",
-    "lucide-react": "^1.0.1"
+    "resend": "^6.12.3",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
