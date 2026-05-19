@@ -1,18 +1,26 @@
 const { createClient } = require('@supabase/supabase-js');
-// 1. nodemailer 대신 resend 라이브러리를 가져옵니다.
-const { Resend } = require('resend'); 
+const nodemailer = require('nodemailer'); // 1. Resend 대신 nodemailer로 복귀!
 require('dotenv').config();
 
-// (참고: NEXT_PUBLIC_process.env는 문법 오류가 날 수 있어 process.env로 깔끔하게 통일했습니다)
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// 2. Resend 인스턴스를 생성합니다. (환경변수에서 API 키를 가져옴)
-const resend = new Resend(process.env.RESEND_API_KEY);
+// 2. Gmail SMTP 트랜스포터 설정 (포트 587 우회 적용)
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,             // 👈 587 포트로 우회하여 Railway 차단 방지
+    secure: false,         // 👈 587 포트에서는 무조건 false
+    requireTLS: true,      // 👈 대신 TLS 보안 강제
+    auth: {
+        user: process.env.EMAIL_USER, // 승환님의 구글 이메일 (예: avcap1234@gmail.com)
+        pass: (process.env.EMAIL_PASS || "").replace(/\s+/g, ""), // 구글 앱 비밀번호
+    },
+});
 
 /**
  * [STEP 1] 인증번호 발송 및 저장 (발송 시점)
  */
 const requestVerification = async (targetEmail) => {
+    // 💡 승환님이 짜두신 철통 방어막 유지! (.ac.kr이 아니면 컷)
     if (!targetEmail.toLowerCase().endsWith('.ac.kr')) {
         return { success: false, message: "대학 이메일이 아닙니다." };
     }
@@ -20,21 +28,17 @@ const requestVerification = async (targetEmail) => {
     const vCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
-        // 3. nodemailer 발송 로직을 Resend API 호출 방식으로 변경했습니다.
-        const { data, error: mailError } = await resend.emails.send({
-            from: 'KnockKnock <onboarding@resend.dev>', // ⚠️도메인 인증 전에는 이 주소 고정입니다.
+        // 3. Nodemailer 발송 로직
+        const mailOptions = {
+            from: `"Knock Knock" <${process.env.EMAIL_USER}>`, 
             to: targetEmail,
             subject: '[Knock Knock] 대학생 인증번호',
             text: `인증번호는 [${vCode}] 입니다. 5분 이내에 입력해주세요.`,
-            // html을 추가하면 조금 더 깔끔하게 메일이 보입니다 (선택 사항)
             html: `<p>인증번호는 <strong>[${vCode}]</strong> 입니다.</p><p>5분 이내에 입력해주세요.</p>`
-        });
+        };
 
-        // 메일 발송 자체에 실패했을 경우 에러 핸들링
-        if (mailError) {
-            console.error("❌ Resend 메일 발송 실패:", mailError);
-            return { success: false, error: mailError.message };
-        }
+        // 메일 발송 실행!
+        await transporter.sendMail(mailOptions);
 
         // 4. DB 저장은 기존 로직 완벽하게 유지!
         await supabase
@@ -48,7 +52,7 @@ const requestVerification = async (targetEmail) => {
         console.log(`✅ [${targetEmail}] 발송 및 DB 저장 완료`);
         return { success: true };
     } catch (err) {
-        console.error(err);
+        console.error("❌ 메일 발송 실패:", err);
         return { success: false, error: err.message };
     }
 };
