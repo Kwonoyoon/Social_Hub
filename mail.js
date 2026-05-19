@@ -1,23 +1,23 @@
 const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
-const dns = require('dns'); // 👈 Railway IPv6 충돌 우회용 모듈
+const dns = require('dns'); // Railway IPv6 충돌 우회용 모듈 1
 require('dotenv').config();
 
-// 🚨 핵심 해결책: 구글 우체국을 찾아갈 때 무조건 구형 주소(IPv4)를 먼저 찾도록 강제!
+// 🚨 Node.js 전체에 IPv4 사용 강제 방송
 dns.setDefaultResultOrder('ipv4first');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// Gmail SMTP 트랜스포터 설정 (포트 587 우회 적용)
+// Gmail SMTP 트랜스포터 설정 (포트 465, Nodemailer 목줄 채우기)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,             
-    secure: false,         // 587 포트에서는 무조건 false
-    requireTLS: true,      // 대신 TLS 보안 강제
+    port: 465,             // 👈 587 대신 방화벽에 강한 465 보안 포트 사용
+    secure: true,          // 👈 465 포트 필수 옵션
     auth: {
         user: process.env.EMAIL_USER, 
         pass: (process.env.EMAIL_PASS || "").replace(/\s+/g, ""), 
     },
+    family: 4              // 👈 🚨 (가장 중요) Nodemailer가 무조건 IPv4만 쓰도록 강제 고정!
 });
 
 /**
