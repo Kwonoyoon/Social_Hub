@@ -1,18 +1,22 @@
 const { createClient } = require('@supabase/supabase-js');
-const nodemailer = require('nodemailer'); // 1. Resend 대신 nodemailer로 복귀!
+const nodemailer = require('nodemailer');
+const dns = require('dns'); // 👈 Railway IPv6 충돌 우회용 모듈
 require('dotenv').config();
+
+// 🚨 핵심 해결책: 구글 우체국을 찾아갈 때 무조건 구형 주소(IPv4)를 먼저 찾도록 강제!
+dns.setDefaultResultOrder('ipv4first');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// 2. Gmail SMTP 트랜스포터 설정 (포트 587 우회 적용)
+// Gmail SMTP 트랜스포터 설정 (포트 587 우회 적용)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,             // 👈 587 포트로 우회하여 Railway 차단 방지
-    secure: false,         // 👈 587 포트에서는 무조건 false
-    requireTLS: true,      // 👈 대신 TLS 보안 강제
+    port: 587,             
+    secure: false,         // 587 포트에서는 무조건 false
+    requireTLS: true,      // 대신 TLS 보안 강제
     auth: {
-        user: process.env.EMAIL_USER, // 승환님의 구글 이메일 (예: avcap1234@gmail.com)
-        pass: (process.env.EMAIL_PASS || "").replace(/\s+/g, ""), // 구글 앱 비밀번호
+        user: process.env.EMAIL_USER, 
+        pass: (process.env.EMAIL_PASS || "").replace(/\s+/g, ""), 
     },
 });
 
@@ -20,7 +24,7 @@ const transporter = nodemailer.createTransport({
  * [STEP 1] 인증번호 발송 및 저장 (발송 시점)
  */
 const requestVerification = async (targetEmail) => {
-    // 💡 승환님이 짜두신 철통 방어막 유지! (.ac.kr이 아니면 컷)
+    // 💡 철통 방어막 유지! (.ac.kr이 아니면 컷)
     if (!targetEmail.toLowerCase().endsWith('.ac.kr')) {
         return { success: false, message: "대학 이메일이 아닙니다." };
     }
@@ -28,7 +32,6 @@ const requestVerification = async (targetEmail) => {
     const vCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     try {
-        // 3. Nodemailer 발송 로직
         const mailOptions = {
             from: `"Knock Knock" <${process.env.EMAIL_USER}>`, 
             to: targetEmail,
@@ -40,7 +43,7 @@ const requestVerification = async (targetEmail) => {
         // 메일 발송 실행!
         await transporter.sendMail(mailOptions);
 
-        // 4. DB 저장은 기존 로직 완벽하게 유지!
+        // DB 저장 로직
         await supabase
             .from('email_verifications')
             .upsert({ 
@@ -59,7 +62,6 @@ const requestVerification = async (targetEmail) => {
 
 /**
  * [STEP 2] 인증번호 검증 (사용자가 입력했을 때)
- * 👉 이 단계는 기존 코드가 완벽하므로 건드릴 것이 없습니다!
  */
 const verifyCode = async (userEmail, inputCode) => {
     try {
